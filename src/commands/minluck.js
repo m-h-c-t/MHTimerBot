@@ -168,7 +168,7 @@ async function automice(interaction) {
         const all_mice = getMice(focus, interaction.client.nicknames.get('mice'));
         if (all_mice) {
             await interaction.respond(
-                all_mice.map(mouse => ({ name: mouse, value: mouse })),
+                all_mice.map(mouse => ({ name: mouse.value, value: mouse.value })),
             );
         }
     }
