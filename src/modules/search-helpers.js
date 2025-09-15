@@ -1,3 +1,5 @@
+const fuzzysort = require('fuzzysort');
+
 /**
  * Return a sorted list of approximate matches to the given input and container
  *
@@ -25,4 +27,24 @@ function getSearchedEntity(input, values) {
     return matches.map(m => m.entity);
 }
 
-module.exports.getSearchedEntity = getSearchedEntity;
+/**
+ * Perform a fuzzy search on the given values using the input string.
+ * @param {string} input The input string to search for.
+ * @param {object} values The array of strings to search within.
+ * @param {string} key The key to search within each object.
+ * @returns {Fuzzysort.KeyResults<any>} The array of up to ten matching strings.
+ */
+function fuzzySearch(input, values, key) {
+    if (!input.length || !Array.isArray(values) || !values.length) {
+        return [];
+    }
+
+    const results = fuzzysort.go(input, values, { key: key });
+
+    return results.slice(0, 10);
+}
+
+module.exports = {
+    getSearchedEntity,
+    fuzzySearch,
+};

@@ -1,4 +1,3 @@
- 
 const {
     EmbedBuilder,
 } = require('discord.js');
@@ -18,7 +17,7 @@ const {
     howManyHunts,
 } = require('../modules/format-utils');
 const Logger = require('../modules/logger');
-const { getSearchedEntity } = require('../modules/search-helpers');
+const { getSearchedEntity, fuzzySearch } = require('../modules/search-helpers');
 
 const refresh_rate = Duration.fromObject({ minutes: 30 });
 const refresh_list = {
@@ -32,6 +31,7 @@ const refresh_list = {
 const intervals = [];
 /** @type {DatabaseFilter[]} Database filters, populated by mhct.win/filters.php */
 const filters = [];
+/** @type {{id: number, value: string}[]} */
 const mice = [];
 const loot = [];
 const convertibles = [];
@@ -610,14 +610,29 @@ function getLoot(tester, nicknames) {
  *
  * @param {string} tester The mouse we're looking for
  * @param {{ [x: string]: string }} nicknames The nicknames for mice
- * @returns The first ten mice that matched
+ * @returns {string[]} The first ten mice that matched
  */
 function getMice(tester, nicknames) {
-    if (!tester) return;
-    let ltester = `${tester}`.toLowerCase();
+    if (!tester) {
+        return mice.map(mouse => mouse.value).slice(0, 10);
+    }
+
+    // if the tester is an exact match, add it to the front of the list
+    // but also do a fuzzy search to get more results
+    const results = new Set();
+    const ltester = `${tester}`.toLowerCase();
     if (nicknames && ltester in nicknames && nicknames[ltester])
-        ltester = nicknames[ltester].toLowerCase();
-    return getSearchedEntity(ltester, mice);
+        results.add(fuzzySearch(nicknames[ltester], mice, 'value')[0].target);
+
+    const fuzzyResults = fuzzySearch(tester, mice, 'value')
+        .map(result => result.target);
+
+    for (const fr of fuzzyResults) {
+        if (results.size >= 10) break;
+        results.add(fr);
+    }
+
+    return Array.from(results);
 }
 
 /**
