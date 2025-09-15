@@ -1,0 +1,15 @@
+{
+    "configurations": [
+        {
+            "name": "Run MHTimerBot",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/MHTimer.js",
+            "console": "integratedTerminal",
+            "internalConsoleOptions": "neverOpen",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "type": "node"
+        }
+    ]
+}
