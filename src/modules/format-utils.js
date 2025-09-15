@@ -306,7 +306,7 @@ function isValidURL(str) {
     let url;
     try {
         url = new URL(str);
-    } catch (_) {
+    } catch {
         return false;
     }
 

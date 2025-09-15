@@ -112,7 +112,7 @@ function getMinLuck(message, mouse, flags) {
             if (f in typeMap)
                 return typeMap[f];
         }).filter(type => !!type );
-        if ('guildId' in message 
+        if ('guildId' in message
             && message['guildId']
             && message['guildId'] in message.client.settings.guilds
             && 'emoji' in message.client.settings.guilds[message.guildId]) {
@@ -139,7 +139,7 @@ async function interact(interaction) {
                     .setCustomId(interaction.id)
                     .setLabel('Send to Channel')
                     .setStyle(ButtonStyle.Primary),
-            ); 
+            );
         const results = getMinLuck(interaction, interaction.options.getString('mouse'), interaction.options.getString('powertype'));
         const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
         collector.on('collect', async c => {
@@ -152,7 +152,7 @@ async function interact(interaction) {
         collector.on('end', async () => {
             await interaction.editReply({ content: results, components: [] });
         });
-        await interaction.reply({ content: results, ephemeral: true, components: [ shareButton ] }); 
+        await interaction.reply({ content: results, ephemeral: true, components: [ shareButton ] });
     } else {
         Logger.error('Somehow minluck command interaction was called without a command');
     }

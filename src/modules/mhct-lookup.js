@@ -1,4 +1,4 @@
-// eslint-disable-next-line no-unused-vars
+ 
 const {
     EmbedBuilder,
 } = require('discord.js');

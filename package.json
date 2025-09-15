@@ -11,10 +11,10 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/AardWolf/MHTimerBot"
+    "url": "https://github.com/m-h-c-t/MHTimerBot"
   },
   "bugs": {
-    "url": "https://github.com/AardWolf/MHTimerBot/issues"
+    "url": "https://github.com/m-h-c-t/MHTimerBot/issues"
   },
   "contributors": [
     "@tehhowch",
@@ -36,10 +36,10 @@
     "lint": "eslint --fix --quiet src tests",
     "test": "tape ./tests/**/*.js"
   },
-  "peerDependencies": {
-    "eslint": "^8.0.0"
-  },
   "devDependencies": {
+    "@eslint/js": "^9.35.0",
+    "eslint": "^9.35.0",
+    "globals": "^16.4.0",
     "mock-fs": "^5.1.1",
     "sinon": "^11.1.2",
     "tape": "^5.3.1"

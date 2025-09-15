@@ -154,9 +154,9 @@ async function interactionDisplayPage(interaction, pages, current_page) {
             .setCustomId(`fmshare_${interaction.id}_${current_page}`)
             .setLabel('Send to Channel')
             .setStyle(ButtonStyle.Primary);
-        buttons = buttons.addComponents(share_button); 
+        buttons = buttons.addComponents(share_button);
         // Set filter
-        const filter = f => (f.customId === `fmshare_${interaction.id}_${current_page}` || f.customId === `fmmore_${interaction.id}_${current_page}`) 
+        const filter = f => (f.customId === `fmshare_${interaction.id}_${current_page}` || f.customId === `fmmore_${interaction.id}_${current_page}`)
                             && f.user.id === interaction.user.id;
         // Set collector
         const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
