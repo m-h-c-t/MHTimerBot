@@ -610,11 +610,11 @@ function getLoot(tester, nicknames) {
  *
  * @param {string} tester The mouse we're looking for
  * @param {{ [x: string]: string }} nicknames The nicknames for mice
- * @returns {string[]} The first ten mice that matched
+ * @returns {Array<{ value: string, [x: string]: any }>} The first ten mice that matched
  */
 function getMice(tester, nicknames) {
     if (!tester) {
-        return mice.map(mouse => mouse.value).slice(0, 10);
+        return mice.slice(0, 10);
     }
 
     // if the tester is an exact match, add it to the front of the list
@@ -622,10 +622,10 @@ function getMice(tester, nicknames) {
     const results = new Set();
     const ltester = `${tester}`.toLowerCase();
     if (nicknames && ltester in nicknames && nicknames[ltester])
-        results.add(fuzzySearch(nicknames[ltester], mice, 'value')[0].target);
+        results.add(fuzzySearch(nicknames[ltester], mice, 'value')[0].obj);
 
     const fuzzyResults = fuzzySearch(tester, mice, 'value')
-        .map(result => result.target);
+        .map(result => result.obj);
 
     for (const fr of fuzzyResults) {
         if (results.size >= 10) break;

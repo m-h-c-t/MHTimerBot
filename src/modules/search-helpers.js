@@ -5,7 +5,7 @@ const fuzzysort = require('fuzzysort');
  *
  * @param {string} input The text to match against
  * @param {Array<{ value: string, lowerValue: string, [x: string]: any }>} values An array of objects with a lowerValue property.
- * @returns Up to 10 values, sorted descending by their similarity to the input.
+ * @returns {Array<{ value: string, [x: string]: any }>} Up to 10 values, sorted descending by their similarity to the input.
  */
 function getSearchedEntity(input, values) {
     if (!input.length || !Array.isArray(values) || !values.length) {
