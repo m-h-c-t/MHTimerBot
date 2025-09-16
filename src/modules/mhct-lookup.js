@@ -613,9 +613,8 @@ function getLoot(tester, nicknames) {
  * @returns {Array<{ value: string, [x: string]: any }>} The first ten mice that matched
  */
 function getMice(tester, nicknames) {
-    if (!tester) {
-        return mice.slice(0, 10);
-    }
+    if (!tester)
+        return;
 
     // if the tester is an exact match, add it to the front of the list
     // but also do a fuzzy search to get more results
