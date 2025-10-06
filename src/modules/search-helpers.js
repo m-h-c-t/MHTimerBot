@@ -31,7 +31,7 @@ function getSearchedEntity(input, values) {
  * Perform a fuzzy search on the given values using the input string.
  * @param {string} input The input string to search for.
  * @param {object} values The array of strings to search within.
- * @param {string} key The key to search within each object.
+ * @param {string | ((obj: T) => string) | ReadonlyArray<string>} key The key to search within each object.
  * @returns {Fuzzysort.KeyResults<any>} The array of up to ten matching strings.
  */
 function fuzzySearch(input, values, key) {
