@@ -1,5 +1,5 @@
 // Originally derived from https://stackoverflow.com/questions/12008120/console-log-timestamps-in-chrome
-const { DateTime } = require('luxon');
+import { DateTime } from 'luxon';
 
 /**
  * Inserts the current time as ISO 8601 as the first argument
@@ -14,7 +14,7 @@ const addTimestamp = (firstArg, ...rest) => {
         : [`[${timestamp}]`, firstArg, ...rest];
 };
 
-module.exports = class TimeStampedLogger {
+const TimeStampedLogger = class {
     /**
      * @param {...any} args Items to debug in a timestamped console
      */
@@ -47,3 +47,5 @@ module.exports = class TimeStampedLogger {
         console.error.apply(console, addTimestamp(...args));
     }
 };
+
+export { TimeStampedLogger as Logger };

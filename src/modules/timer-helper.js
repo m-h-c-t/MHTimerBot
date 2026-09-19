@@ -1,6 +1,6 @@
-const Logger = require('../modules/logger');
-const { EmbedBuilder } = require('discord.js');
-const { timeLeft } = require('../modules/format-utils');
+import { Logger } from '../modules/logger.js';
+import { EmbedBuilder } from 'discord.js';
+import { timeLeft } from '../modules/format-utils.js';
 
 /**
  * @typedef {Object} ReminderRequest
@@ -402,7 +402,4 @@ function listRemind(user, reminders, botPrefix) {
     return userReminders.length ? timer_str : 'I found no reminders for you, sorry.';
 }
 
-module.exports.getKnownTimersDetails = getKnownTimersDetails;
-module.exports.timerAliases = timerAliases;
-module.exports.nextTimer = nextTimer;
-module.exports.listRemind = listRemind;
+export { getKnownTimersDetails, timerAliases, nextTimer, listRemind };

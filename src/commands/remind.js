@@ -1,10 +1,10 @@
 // eslint-disable-next-line no-unused-vars
-const { Formatters, Message, User } = require('discord.js');
+import { Formatters, Message, User } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const { oxfordStringifyValues, splitMessageRegex } = require('../modules/format-utils');
-const Logger = require('../modules/logger');
-const { listRemind, timerAliases, getKnownTimersDetails } = require('../modules/timer-helper');
+import {CommandResult} from '../interfaces/command-result.js';
+import { oxfordStringifyValues, splitMessageRegex } from '../modules/format-utils.js';
+import {Logger} from '../modules/logger.js';
+import { listRemind, timerAliases, getKnownTimersDetails } from '../modules/timer-helper.js';
 
 const usage = [
     'Provide no arguments for a list of your reminders. Use [<area>] [<sub-area>] [<number>] to set a reminder',
@@ -151,7 +151,7 @@ async function sendDM(author, result, text) {
     return result;
 }
 
-module.exports = {
+export const command = {
     name: 'remind',
     args: true,
     usage: usage,

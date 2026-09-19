@@ -16,7 +16,7 @@
  * @property {string} code_name
  * @property {string} lowerValue a lowercased version of `code_name` for use by comparison algorithms
  */
-class DatabaseFilter {
+export class DatabaseFilter {
     /**
      * @param {string} code_name
      * @param {Object <string, string|null} rest
@@ -59,4 +59,3 @@ class DatabaseFilter {
  * @property {null} dynamic_start
  */
 
-module.exports = DatabaseFilter;

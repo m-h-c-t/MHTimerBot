@@ -478,15 +478,17 @@ function howManyHunts(attractionRate) {
     return huntsForOne;
 }
 
-exports.oxfordStringifyValues = oxfordStringifyValues;
-exports.prettyPrintArrayAsString = prettyPrintArrayAsString;
-exports.splitString = splitString;
-exports.timeLeft = timeLeft;
-exports.unescapeEntities = unescapeEntities;
-exports.isValidURL = isValidURL;
-exports.calculateRate = calculateRate;
-exports.integerComma = integerComma;
-exports.intToHuman = intToHuman;
-exports.splitMessageRegex = splitMessageRegex;
-exports.formatInterval = formatInterval;
-exports.howManyHunts = howManyHunts;
+export {
+    oxfordStringifyValues,
+    prettyPrintArrayAsString,
+    splitString,
+    timeLeft,
+    unescapeEntities,
+    isValidURL,
+    calculateRate,
+    integerComma,  
+    intToHuman,
+    splitMessageRegex,
+    formatInterval,
+    howManyHunts,
+}

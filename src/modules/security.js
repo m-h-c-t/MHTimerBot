@@ -1,6 +1,6 @@
 // Extract type-hinting definitions for Discord classes.
 // eslint-disable-next-line no-unused-vars
-const { Client, Collection, Guild, GuildMember, PermissionsBitField, User } = require('discord.js');
+import { Client, Collection, Guild, GuildMember, PermissionsBitField, User } from 'discord.js';
 
 /**
  * Checks the permissions of the member to see if they're at the minimum level
@@ -8,7 +8,7 @@ const { Client, Collection, Guild, GuildMember, PermissionsBitField, User } = re
  * @param {'admin'|'mod'} level Minimum level required ('admin' or 'mod')
  * @returns {boolean} Whether the user is at that level or higher
  */
-function checkPerms(member, level) {
+export function checkPerms(member, level) {
     if (!member || !level || !member.guild || !member.id || !('client' in member)) return false;
     const guild = member.guild;
     let authCheck = false;
@@ -31,4 +31,3 @@ function checkPerms(member, level) {
     return authCheck;
 }
 
-exports.checkPerms = checkPerms;

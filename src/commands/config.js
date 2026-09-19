@@ -1,10 +1,10 @@
 // eslint-disable-next-line no-unused-vars
-const { ChannelType, Message } = require('discord.js');
+import { ChannelType, Message } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const { splitMessageRegex } = require('../modules/format-utils');
-const Logger = require('../modules/logger');
-const security = require('../modules/security');
+import { CommandResult } from '../interfaces/command-result.js';
+import { splitMessageRegex } from '../modules/format-utils.js';
+import {Logger} from '../modules/logger.js';
+import { checkPerms } from '../modules/security.js';
 const usage = [
     'view - see current settings for this server',
     'modrole - define the role on this server for moderation level',
@@ -29,7 +29,7 @@ async function doSet(message, tokens) {
     if (!tokens.length)
         tokens = ['view'];
     const action = tokens.shift().toLowerCase();
-    if (!security.checkPerms(message.member, 'admin')) {
+    if (!checkPerms(message.member, 'admin')) {
         reply = 'Just who do you think you are?';
     }
     else if (action === 'view' && guild) {
@@ -165,7 +165,7 @@ async function doSet(message, tokens) {
     return theResult;
 }
 
-module.exports = {
+export const command = {
     name: 'config',
     requiresArgs: true,
     usage: usage,

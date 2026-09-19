@@ -1,7 +1,7 @@
 // Access local URIs, like files.
-const fs = require('fs/promises');
+import fs from 'node:fs/promises';
 
-const Logger = require('./logger');
+import { Logger } from './logger.js';
 
 const file_encoding = 'utf8';
 
@@ -41,5 +41,4 @@ async function saveDataAsJSON(filename, rawData) {
     }
 }
 
-exports.loadDataFromJSON = loadDataFromJSON;
-exports.saveDataAsJSON = saveDataAsJSON;
+export { loadDataFromJSON, saveDataAsJSON };

@@ -1,11 +1,11 @@
 // eslint-disable-next-line no-unused-vars
-const { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } = require('discord.js');
+import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
-    listFilters, getLoot, formatLoot, save, getFilter } = require('../modules/mhct-lookup');
-const { splitMessageRegex } = require('../modules/format-utils');
+import {CommandResult} from '../interfaces/command-result.js';
+import {Logger} from '../modules/logger.js';
+import { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
+    listFilters, getLoot, formatLoot, save, getFilter } from '../modules/mhct-lookup.js';
+import { splitMessageRegex } from '../modules/format-utils.js';
 
 /**
  *
@@ -200,7 +200,6 @@ async function interactionDisplayPage(interaction, pages, current_page) {
 const slashCommand = new SlashCommandBuilder()
     .setName('find-mouse')
     .setDescription('Get the attraction rates for a mouse')
-    .setDMPermission(true)
     .addStringOption(option =>
         option.setName('mouse')
             .setDescription('The mouse to look up')
@@ -212,7 +211,7 @@ const slashCommand = new SlashCommandBuilder()
             .setRequired(false)
             .setAutocomplete(true));
 
-module.exports = {
+export const command = {
     name: 'find-mouse',
     args: true,
     usage: 'Coming Soon',

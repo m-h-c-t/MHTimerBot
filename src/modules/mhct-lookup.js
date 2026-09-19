@@ -1,13 +1,13 @@
-const {
+import {
     EmbedBuilder,
-} = require('discord.js');
-const { DateTime, Duration } = require('luxon');
-const fetch = require('node-fetch');
-const { firstBy } = require('thenby');
-const csv_parse = require('csv-parse');
+} from 'discord.js';
+import { DateTime, Duration } from 'luxon';
+import fetch from 'node-fetch';
+import { firstBy } from 'thenby';
+import { parse as csv_parse } from 'csv-parse';
 
-const DatabaseFilter = require('../models/dbFilter');
-const {
+import {DatabaseFilter} from '../models/dbFilter.js';
+import {
     calculateRate,
     prettyPrintArrayAsString,
     intToHuman,
@@ -15,9 +15,9 @@ const {
     splitMessageRegex,
     formatInterval,
     howManyHunts,
-} = require('../modules/format-utils');
-const Logger = require('../modules/logger');
-const { getSearchedEntity, fuzzySearch } = require('../modules/search-helpers');
+} from '../modules/format-utils.js';
+import {Logger} from '../modules/logger.js';
+import { getSearchedEntity, fuzzySearch } from '../modules/search-helpers.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 30 });
 const refresh_list = {
@@ -965,19 +965,20 @@ async function save() {
     return true;
 }
 
-module.exports.getMHCTList = getMHCTList;
-module.exports.initialize = initialize;
-module.exports.findThing = findThing;
-module.exports.extractEventFilter = extractEventFilter;
-module.exports.getFilter = getFilter;
-module.exports.getLoot = getLoot;
-module.exports.getMice = getMice;
-module.exports.getConvertibles = getConvertibles;
-module.exports.formatLoot = formatLoot;
-module.exports.formatMice = formatMice;
-module.exports.formatConvertibles = formatConvertibles;
-module.exports.sendInteractiveSearchResult = sendInteractiveSearchResult;
-module.exports.getSearchedEntity = getSearchedEntity;
-module.exports.listFilters = listFilters;
-module.exports.save = save;
-module.exports.getMinluckString = getMinluckString;
+export { getMHCTList, 
+    initialize, 
+    findThing, 
+    extractEventFilter, 
+    getFilter, 
+    getLoot, 
+    getMice, 
+    getConvertibles, 
+    formatLoot, 
+    formatMice, 
+    formatConvertibles, 
+    sendInteractiveSearchResult, 
+    getSearchedEntity, 
+    listFilters, 
+    save, 
+    getMinluckString };
+
