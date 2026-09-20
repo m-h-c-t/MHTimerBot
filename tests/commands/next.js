@@ -1,10 +1,10 @@
-import {test} from 'tape';
+import { test } from 'tape';
 import sinon from 'sinon';
 
 // Stub Logger methods to minimize crosstalk.
 import { stubLogger, restoreLogger } from '../helpers/logging.js';
 // We need a decently realistic Message stub.
-import {mockMessage} from '../helpers/mock-message.js';
+import { mockMessage } from '../helpers/mock-message.js';
 // Stub the timer helpers so we don't have to worry about tests failing due to time of day
 import { stubTimerHelper, restoreTimerHelper } from '../helpers/timers.js';
 

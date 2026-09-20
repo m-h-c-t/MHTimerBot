@@ -3,7 +3,7 @@ import sinon from 'sinon';
 import { PermissionsBitField } from 'discord.js';
 
 import { checkPerms } from '../../src/modules/security.js';
-import {mockMember} from '../helpers/mock-member.js';
+import { mockMember } from '../helpers/mock-member.js';
 
 test('checkPerms', suite => {
     suite.test('given non-member input - returns false', t => {

@@ -1,9 +1,9 @@
 // Required test imports
-import {test} from 'tape';
+import { test } from 'tape';
 import sinon from 'sinon';
 
 // Functionality to be tested.
-import {Logger} from '../../src/modules/logger.js';
+import { Logger } from '../../src/modules/logger.js';
 
 const utcRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
 

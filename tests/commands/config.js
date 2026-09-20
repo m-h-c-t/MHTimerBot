@@ -5,8 +5,8 @@ import { PermissionsBitField } from 'discord.js';
 // Stub Logger methods to minimize crosstalk.
 import { stubLogger, restoreLogger } from '../helpers/logging.js';
 // We need a decently realistic Message stub.
-import {mockMessage} from '../helpers/mock-message.js';
-import {mockMember} from '../helpers/mock-member.js';
+import { mockMessage } from '../helpers/mock-message.js';
+import { mockMember } from '../helpers/mock-member.js';
 
 // Declaration of what we're testing.
 /** @type {{ execute: (Message, tokens: string[] ) => Promise<import('../../src/interfaces/command-result')>}} */

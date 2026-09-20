@@ -1,4 +1,4 @@
-import {test} from 'tape';
+import { test } from 'tape';
 import sinon from 'sinon';
 
 test.onFinish(() => {

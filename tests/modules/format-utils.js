@@ -1,5 +1,5 @@
 // Required test imports
-import {test} from 'tape';
+import { test } from 'tape';
 
 // Functionality to be tested.
 import {

@@ -1,5 +1,5 @@
 import { Collection, ChannelType } from 'discord.js';
-import { default as Keys} from '../../src/utils/discord-enum-keys.js';
+import { default as Keys } from '../../src/utils/discord-enum-keys.js';
 import sinon from 'sinon';
 
 /**

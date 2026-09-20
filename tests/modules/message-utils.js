@@ -2,7 +2,7 @@
 import test from 'tape';
 import sinon from 'sinon';
 
-import {CommandResult} from '../../src/interfaces/command-result.js';
+import { CommandResult } from '../../src/interfaces/command-result.js';
 
 // Functionality to be tested.
 import { addMessageReaction } from '../../src/modules/message-utils.js';

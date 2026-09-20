@@ -1,15 +1,15 @@
 import test from 'tape';
 import sinon from 'sinon';
 
-import {getSearchedEntity } from '../../src/modules/search-helpers.js';
+import { getSearchedEntity } from '../../src/modules/search-helpers.js';
 import {
-    extractEventFilter,
+    // extractEventFilter,
     // findThing,
     // formatConvertibles,
     // formatLoot,
     // formatMice,
-    getConvertibles,
-    getFilter,
+    // getConvertibles,
+    // getFilter,
     getLoot,
     getMice,
     // getMinluckString,

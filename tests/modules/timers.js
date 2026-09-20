@@ -2,7 +2,7 @@
 import test from 'tape';
 
 // Functionality to be tested.
-import {Timer} from '../../src/modules/timers.js';
+import { Timer } from '../../src/modules/timers.js';
 
 // Stub Logger methods to minimize crosstalk.
 import { stubLogger, restoreLogger } from '../helpers/logging.js';

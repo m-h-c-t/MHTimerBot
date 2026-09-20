@@ -2,7 +2,7 @@
 // To use, a suite can store the result of calling `stubLogger` in a setup "test",
 // and then pass this result to `restoreLogger` in a cleanup "test".
 import sinon from 'sinon';
-import {Logger} from '../../src/modules/logger.js';
+import { Logger } from '../../src/modules/logger.js';
 
 export const stubLogger = () => {
     return {
