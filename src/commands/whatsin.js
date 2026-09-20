@@ -1,11 +1,11 @@
 // eslint-disable-next-line no-unused-vars
-const { Message } = require('discord.js');
+import { Message } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { initialize, getConvertibles, sendInteractiveSearchResult,
-    save, formatConvertibles } = require('../modules/mhct-lookup');
-const { splitMessageRegex } = require('../modules/format-utils');
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
+import { initialize, getConvertibles, sendInteractiveSearchResult,
+    save, formatConvertibles } from '../modules/mhct-lookup.js';
+import { splitMessageRegex } from '../modules/format-utils.js';
 
 const usage = [
     '<convertible> will report stats about what is inside that convertible',
@@ -62,7 +62,7 @@ async function doWHATSIN(message, tokens) {
     return theResult;
 }
 
-module.exports = {
+export const command = {
     name: 'whatsin',
     args: true,
     usage: usage,

@@ -1,9 +1,9 @@
-const test = require('tape');
-const sinon = require('sinon');
-const { PermissionsBitField } = require('discord.js');
+import test from 'tape';
+import sinon from 'sinon';
+import { PermissionsBitField } from 'discord.js';
 
-const { checkPerms } = require('../../src/modules/security');
-const mockMember = require('../helpers/mock-member');
+import { checkPerms } from '../../src/modules/security.js';
+import { mockMember } from '../helpers/mock-member.js';
 
 test('checkPerms', suite => {
     suite.test('given non-member input - returns false', t => {

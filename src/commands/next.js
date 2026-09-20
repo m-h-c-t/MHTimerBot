@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-unused-vars
-const { Message } = require('discord.js');
+import { Message } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { getKnownTimersDetails, timerAliases, nextTimer } = require('../modules/timer-helper');
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
+import { getKnownTimersDetails, timerAliases, nextTimer } from '../modules/timer-helper.js';
 
 const usage = [
     '<area> or <sub-area> will provide a message about the next related occurrence.',
@@ -21,7 +21,7 @@ const usage = [
  */
 async function doNEXT(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
-    let reply = '';
+    let reply;
 
     const aboutTimers = `I know these timers:\n${getKnownTimersDetails(message.client.timers_list)}`;
     // Parse the message to see if it matches any known timer areas, sub-areas, or has count information.
@@ -66,7 +66,7 @@ async function doNEXT(message, tokens) {
     return theResult;
 }
 
-module.exports = {
+export const command = {
     name: 'next',
     args: true,
     usage: usage,

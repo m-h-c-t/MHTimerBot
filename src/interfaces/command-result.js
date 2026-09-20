@@ -1,10 +1,10 @@
 // eslint-disable-next-line no-unused-vars
-const { Message } = require('discord.js');
+import { Message } from 'discord.js';
 
 /**
  * A "command result" is a simple public class that conveys information about the result of a command that executed.
  */
-class CommandResult {
+export class CommandResult {
     // Instance fields are node 12 only, and our eslint config doesn't handle them yet either.
     /** @type {boolean} Whether the command was successful */
     // success = null;
@@ -40,4 +40,3 @@ class CommandResult {
     }
 }
 
-module.exports = CommandResult;

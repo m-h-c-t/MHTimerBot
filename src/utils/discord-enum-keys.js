@@ -3,7 +3,7 @@
  * @param {Object <string, number|string} discordEnum
  * @returns {ReadonlySet<string>}
  */
-module.exports = (discordEnum) => {
+export default (discordEnum) => {
     const values = Object.values(discordEnum);
     if (values.length === 0) throw new TypeError('No values contained in enum');
     if (!values.some((v) => typeof v === 'string')) throw new TypeError('Enum contains no string values');

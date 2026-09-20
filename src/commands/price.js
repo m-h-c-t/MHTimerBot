@@ -1,13 +1,13 @@
-const {
+import {
     InteractionContextType,
     MessageFlags,
     PermissionFlagsBits,
     SlashCommandBuilder,
-} = require('discord.js');
-const { Duration } = require('luxon');
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { fuzzySearch } = require('../modules/search-helpers');
+} from 'discord.js';
+import { Duration } from 'luxon';
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
+import { fuzzySearch } from '../modules/search-helpers.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 120 });
 
@@ -65,7 +65,7 @@ async function execute(message, item) {
         sentDM: false,
     });
 
-    let reply = '';
+    let reply;
     if (!item.length) {
         reply = 'I just cannot find what you\'re looking for (since you didn\'t tell me what it was).';
     } else {
@@ -181,7 +181,7 @@ const slashCommand = new SlashCommandBuilder()
     );
 
 /** @type {import('../interfaces/command').CommandData} */
-module.exports = {
+export const command = {
     name: 'price',
     description: 'Get the price of an item from the marketplace',
     aliases: ['marketprice', 'itemprice'],

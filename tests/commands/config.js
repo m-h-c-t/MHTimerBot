@@ -1,12 +1,12 @@
-const test = require('tape');
-const sinon = require('sinon');
-const { PermissionsBitField } = require('discord.js');
+import test from 'tape';
+import sinon from 'sinon';
+import { PermissionsBitField } from 'discord.js';
 
 // Stub Logger methods to minimize crosstalk.
-const { stubLogger, restoreLogger } = require('../helpers/logging');
+import { stubLogger, restoreLogger } from '../helpers/logging.js';
 // We need a decently realistic Message stub.
-const mockMessage = require('../helpers/mock-message');
-const mockMember = require('../helpers/mock-member');
+import { mockMessage } from '../helpers/mock-message.js';
+import { mockMember } from '../helpers/mock-member.js';
 
 // Declaration of what we're testing.
 /** @type {{ execute: (Message, tokens: string[] ) => Promise<import('../../src/interfaces/command-result')>}} */
@@ -36,8 +36,7 @@ test('commands - config', suite => {
         logStubs = stubLogger();
 
         // Now that we have stubs active, we can require the test subject.
-        CONFIG = require('../../src/commands/config');
-        t.end();
+        import('../../src/commands/config.js').then(c => {CONFIG = c.command; t.end();}).catch(err => {t.fail(err); t.end();});
     });
 
     suite.test('when user is not owner, admin, mod - fail', async t => {

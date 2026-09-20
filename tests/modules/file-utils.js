@@ -1,14 +1,16 @@
 // Required test imports
-const test = require('tape');
-const sinon = require('sinon');
+import { test } from 'tape';
+import sinon from 'sinon';
 // const mock = require('mock-fs');
 
 // Stub IO
 // Just in case modules are already loaded:
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
 delete require.cache[require.resolve('fs/promises')];
 delete require.cache[require.resolve('../../src/modules/file-utils')];
-const fs = require('fs/promises');
-const { stubLogger, restoreLogger } = require('../helpers/logging');
+import fs from 'node:fs/promises';
+import { stubLogger, restoreLogger } from '../helpers/logging.js';
 let logStubs;
 
 // Functionality to be tested.

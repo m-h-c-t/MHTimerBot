@@ -1,11 +1,13 @@
 // Required test imports
-const test = require('tape');
-const sinon = require('sinon');
+import test from 'tape';
+import sinon from 'sinon';
 
-const CommandResult = require('../../src/interfaces/command-result');
+import { CommandResult } from '../../src/interfaces/command-result.js';
 
 // Functionality to be tested.
-const { addMessageReaction } = require('../../src/modules/message-utils');
+import { addMessageReaction } from '../../src/modules/message-utils.js';
+import { Logger } from '../../src/modules/logger.js';
+
 
 test('addMessageReaction', suite => {
     // Note that `addMessageReaction` is async, and thus cannot be directly wrapped by `t.throws` or
@@ -164,7 +166,7 @@ test('addMessageReaction', suite => {
         });
     });
     suite.test('when sending reaction - when error occurs - handles error', async t => {
-        const errorStub = sinon.stub(require('../../src/modules/logger'), 'error');
+        const errorStub = sinon.stub(Logger, 'error');
         t.teardown(() => errorStub.restore());
         t.plan(6);
 

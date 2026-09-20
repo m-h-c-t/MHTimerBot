@@ -1,4 +1,4 @@
-const { ChannelType } = require('discord.js');
+import { ChannelType } from 'discord.js';
 //TODO: We no longer need this utility
 // The ChannelType constants map between the REST API representation (number) and the programmer-friendly
 // string representation. So, we need to map between them as well here, to ensure we are always comparing
@@ -34,4 +34,4 @@ function isDMChannel({ type }, privateOnly = false) {
         : type === ChannelType[API_TYPE_VALUES.DM];
 }
 
-exports.isDMChannel = isDMChannel;
+export default { isDMChannel };

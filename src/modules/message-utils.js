@@ -1,10 +1,10 @@
-const fs = require('fs');
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('./logger');
+import fs from 'fs';
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from './logger.js';
 
 // Read instance overrides from the settings file.
 const settingsPath = '../../data/settings';
-const settings = fs.existsSync(settingsPath) ? require(settingsPath) : {};
+const settings = fs.existsSync(settingsPath) ? await import(settingsPath) : {};
 const { reactions = {} } = settings;
 const successfulEmoji = reactions.success || '✅';
 const failedEmoji = reactions.failure || '❌';
@@ -70,4 +70,4 @@ async function addMessageReaction(executedCommand) {
     return ourResult;
 }
 
-exports.addMessageReaction = addMessageReaction;
+export { addMessageReaction };

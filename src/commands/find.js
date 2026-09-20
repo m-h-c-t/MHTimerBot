@@ -1,11 +1,11 @@
 // eslint-disable-next-line no-unused-vars
-const { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } = require('discord.js');
+import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
-    listFilters, getLoot, formatLoot, save, getFilter } = require('../modules/mhct-lookup');
-const { splitMessageRegex } = require('../modules/format-utils');
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
+import { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
+    listFilters, getLoot, formatLoot, save, getFilter } from '../modules/mhct-lookup.js';
+import { splitMessageRegex } from '../modules/format-utils.js';
 
 /**
  *
@@ -92,9 +92,9 @@ function helpFind() {
 async function autotype(interaction) {
     if (interaction.isAutocomplete()) {
         const focusedOption = interaction.options.getFocused(true);
-        let choices = [];
+        // let choices = [];
         if (focusedOption.name === 'mouse') {
-            choices = getMice(focusedOption.value, interaction.client.nicknames.get('mice'));
+            const choices = getMice(focusedOption.value, interaction.client.nicknames.get('mice'));
             if (choices) {
                 await interaction.respond(
                     choices.map(mouse => ({ name: mouse.value, value: mouse.value })),
@@ -102,7 +102,7 @@ async function autotype(interaction) {
             }
         }
         else if (focusedOption.name === 'filter') {
-            choices = getFilter(focusedOption.value);
+            const choices = getFilter(focusedOption.value || ''); // TODO: This needs to be updated to work like getMice
             if (choices) {
                 await interaction.respond(
                     choices.map(filter => ({ name: filter.code_name, value: filter.code_name })),
@@ -118,14 +118,13 @@ async function autotype(interaction) {
  */
 async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
-        let mouse = {};
         await interaction.deferReply({ ephemeral: true });
         const search_string = interaction.options.getString('mouse');
         const all_mice = getMice(search_string);
-        let results = 'Somehow you did not search for a mouse'; // also happens when no matching mouse
+        // let results = 'Somehow you did not search for a mouse'; // also happens when no matching mouse
         if (all_mice && all_mice.length) {
-            mouse = all_mice[0];
-            results = await formatMice(true, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
+            const mouse = all_mice[0];
+            const results = await formatMice(true, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
             // Here we need to split the results into chunks. The button goes on the last chunk?
             const result_pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
             await interactionDisplayPage(interaction, result_pages, 0);
@@ -200,7 +199,6 @@ async function interactionDisplayPage(interaction, pages, current_page) {
 const slashCommand = new SlashCommandBuilder()
     .setName('find-mouse')
     .setDescription('Get the attraction rates for a mouse')
-    .setDMPermission(true)
     .addStringOption(option =>
         option.setName('mouse')
             .setDescription('The mouse to look up')
@@ -212,7 +210,7 @@ const slashCommand = new SlashCommandBuilder()
             .setRequired(false)
             .setAutocomplete(true));
 
-module.exports = {
+export const command = {
     name: 'find-mouse',
     args: true,
     usage: 'Coming Soon',

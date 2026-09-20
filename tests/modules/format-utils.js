@@ -1,8 +1,8 @@
 // Required test imports
-const test = require('tape');
+import { test } from 'tape';
 
 // Functionality to be tested.
-const {
+import {
     oxfordStringifyValues,
     // prettyPrintArrayAsString,
     splitString,
@@ -12,7 +12,7 @@ const {
     calculateRate,
     integerComma,
     intToHuman,
-} = require('../../src/modules/format-utils');
+} from '../../src/modules/format-utils.js';
 
 test('oxfordStringifyValues', suite => {
     suite.test('given non-object input - throws TypeError', t => {

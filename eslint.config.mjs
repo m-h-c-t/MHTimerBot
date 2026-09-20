@@ -11,6 +11,7 @@ export default defineConfig([
                 Atomics: 'readonly',
                 SharedArrayBuffer: 'readonly',
             },
+            sourceType: 'module',
         },
     },
     {

@@ -2,37 +2,37 @@
  * MHTimer Bot
  */
 // Import required modules
-const { DateTime, Duration, Interval } = require('luxon');
-const Discord = require('discord.js');
-const fs = require('fs');
+import { DateTime, Duration, Interval } from 'luxon';
+import Discord from 'discord.js';
+import fs from 'fs';
 
 // Extract type-hinting definitions for Discord classes.
 // eslint-disable-next-line no-unused-vars
-const { ChannelType, Client, Collection, TextBasedChannelTypes, Guild, GuildMember, GatewayIntentBits, Message, MessageReaction, EmbedBuilder, Partials, Status, TextChannel, User } = Discord;
+const { ChannelType, Client, Collection, Events, TextBasedChannelTypes, Guild, GuildMember, GatewayIntentBits, Message, MessageReaction, EmbedBuilder, Partials, Status, TextChannel, User } = Discord;
 
 // Import our own local classes and functions.
-const Timer = require('./modules/timers.js');
-const CommandResult = require('./interfaces/command-result');
-const {
+import { Timer } from './modules/timers.js';
+import { CommandResult } from './interfaces/command-result.js';
+import {
     oxfordStringifyValues,
     splitString,
     timeLeft,
     unescapeEntities,
     isValidURL,
-} = require('./modules/format-utils');
-const { loadDataFromJSON, saveDataAsJSON } = require('./modules/file-utils');
-const Logger = require('./modules/logger');
-const {
+} from './modules/format-utils.js';
+import { loadDataFromJSON, saveDataAsJSON } from './modules/file-utils.js';
+import { Logger } from './modules/logger.js';
+import {
     addMessageReaction,
-} = require('./modules/message-utils');
-const security = require('./modules/security.js');
+} from './modules/message-utils.js';
+import { checkPerms } from './modules/security.js';
 
 // Access external URIs, like @devjacksmith 's tools.
-const fetch = require('node-fetch');
+import fetch from 'node-fetch';
 // We need more robust CSV handling
-const csv_parse = require('csv-parse');
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
+import { parse as csv_parse } from 'csv-parse';
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v9';
 
 // Globals
 const client = new Client({
@@ -86,7 +86,8 @@ const slashCommands = [];
 const commandFiles = fs.readdirSync('src/commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
     try {
-        const command = require(`./commands/${file}`);
+        const c = await import(`./commands/${file}`);
+        const command = c.command;
         if (command.name) {
             if (typeof(command.canDM) === 'undefined') {
                 command.canDM = true;
@@ -197,7 +198,7 @@ function Main() {
             ];
 
             // Configure the bot behavior.
-            client.once('ready', () => {
+            client.once(Events.ClientReady, () => {
                 Logger.log('I am alive!');
                 // Migrate settings at this point since connection required for some pieces
                 migrateSettings(client.settings);
@@ -240,7 +241,7 @@ function Main() {
                 Logger.log(`Timers: Initialized ${timer_config.size} timers on channels ${oxfordStringifyValues(announcables.map(c => `${c.guild.name}#${c.name}`))}.`);
 
                 // If we disconnect and then reconnect, do not bother rescheduling the already-scheduled timers.
-                client.on('ready', () => Logger.log('I am inVINCEeble!'));
+                client.on(Events.ClientReady, () => Logger.log('I am inVINCEeble!'));
             });
 
             // Discord will trim leading & trailing spaces from messages automatically, so our prefix
@@ -663,7 +664,7 @@ function parseUserMessage(message) {
                 //Protected command, confirm they're allowed to run it
                 if (message.author.id === message.client.settings.owner)
                     canRun = true;
-                else if (('member' in message) && security.checkPerms(message.member, message.minPerm))
+                else if (('member' in message) && checkPerms(message.member, message.minPerm))
                     canRun = true;
             }
             if (canRun) {
@@ -707,7 +708,7 @@ function parseUserMessage(message) {
             }
             case 'shutdown': {
                 if (message.author.id === settings.owner) {
-                    message.channel.send('So long, and thank\'s for all the fish.')
+                    message.channel.send('So long, and thanks for all the fish.')
                         .then(() => quit()); // Quit will _always_ terminate.
                 }
                 break;
@@ -940,7 +941,7 @@ function doAnnounce(timer) {
             tc.send(message).catch(err => {
                 Logger.error(`(${timer.name}): Error during announcement on channel "${tc.name}" in "${tc.guild.name}".\nClient status: ${client.status}\n`, err);
                 // Deactivate this channel only if we are connected to Discord. (Status === 'READY')
-                if (client.status === Status.Ready) {
+                if (client.isReady()) {
                     const index = config.channels.indexOf(tc);
                     Array.prototype.push.apply(config.inactiveChannels, config.channels.splice(index, 1));
                     Logger.warn(`(${timer.name}): deactivated announcement on channel ${tc.name} in ${tc.guild.name} due to send error during send.`);
@@ -1080,7 +1081,7 @@ function getHelpMessage(message, tokens) {
                 canRun = true;
             else if (message.author.id === message.client.settings.owner)
                 canRun = true;
-            else if (('member' in message) && security.checkPerms(message.member, command.minPerm))
+            else if (('member' in message) && checkPerms(message.member, command.minPerm))
                 canRun = true;
             return canRun;
         });

@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-unused-vars
-const { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } = require('discord.js');
+import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
-const CommandResult = require('../interfaces/command-result');
-const Logger = require('../modules/logger');
-const { initialize, getMice, getMinluckString, save } = require('../modules/mhct-lookup');
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
+import { initialize, getMice, getMinluckString, save } from '../modules/mhct-lookup.js';
 
 const usage = [
     'minluck [-A] [-a] [-d] [-f] [-h] [-l] [-p] [-P] [-s] [-t] [-r] <mouse>',
@@ -42,7 +42,7 @@ const typeMap = {
 async function doMINLUCK(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
     const allFlags = Object.keys(typeMap);
-    let reply = '';
+    let reply;
     if (!tokens)
         reply = 'Yeah, good luck with that...';
     else {
@@ -201,7 +201,7 @@ const slashCommand = new SlashCommandBuilder()
                 { name: 'Rift', value: 'r' },
             ));
 
-module.exports = {
+export const command = {
     name: 'minluck',
     args: true,
     usage: usage,

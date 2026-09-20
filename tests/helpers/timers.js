@@ -1,19 +1,18 @@
 // Provide an easy way to intercept calls to the hunter registry commands
-const sinon = require('sinon');
-const timerHelpers = require('../../src/modules/timer-helper');
+import sinon from 'sinon';
+import { getKnownTimersDetails, timerAliases, nextTimer, listRemind } from '../../src/modules/timer-helper.js';
+const mhctTimers = { getKnownTimersDetails, timerAliases, nextTimer, listRemind };
 
-const stubTimerHelper = () => {
+export const stubTimerHelper = () => {
     return {
-        getKnownTimersDetails: sinon.stub(timerHelpers, 'getKnownTimersDetails'),
-        timerAliases: sinon.stub(timerHelpers, 'timerAliases'),
-        nextTimer: sinon.stub(timerHelpers, 'nextTimer'),
-        listRemind: sinon.stub(timerHelpers, 'listRemind'),
+        getKnownTimersDetails: sinon.stub(mhctTimers, 'getKnownTimersDetails'),
+        timerAliases: sinon.stub(mhctTimers, 'timerAliases'),
+        nextTimer: sinon.stub(mhctTimers, 'nextTimer'),
+        listRemind: sinon.stub(mhctTimers, 'listRemind'),
     };
 };
 
-const restoreTimerHelper = ({ ...stubs }) => {
+export const restoreTimerHelper = ({ ...stubs }) => {
     Object.values(stubs).forEach(stub => stub.restore());
 };
 
-exports.stubTimerHelper = stubTimerHelper;
-exports.restoreTimerHelper = restoreTimerHelper;
