@@ -102,7 +102,7 @@ async function autotype(interaction) {
             }
         }
         else if (focusedOption.name === 'filter') {
-            const choices = getFilter(focusedOption.value);
+            const choices = getFilter(focusedOption.value || ''); // TODO: This needs to be updated to work like getMice
             if (choices) {
                 await interaction.respond(
                     choices.map(filter => ({ name: filter.code_name, value: filter.code_name })),
