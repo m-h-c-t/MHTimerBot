@@ -2,9 +2,9 @@
 import { Message } from 'discord.js';
 
 import { DateTime, Duration } from 'luxon';
-import {CommandResult} from '../interfaces/command-result.js';
+import { CommandResult } from '../interfaces/command-result.js';
 import { timeLeft, splitMessageRegex } from '../modules/format-utils.js';
-import {Logger} from '../modules/logger.js';
+import { Logger } from '../modules/logger.js';
 import { timerAliases } from '../modules/timer-helper.js';
 
 const usage = [
@@ -25,7 +25,7 @@ const usage = [
  */
 async function doSCHED(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
-    let reply = '';
+    let reply;
     const timerRequest = timerAliases(message.client.timers_list, tokens);
 
     // Default the searched time period to 24 hours if it was not specified.

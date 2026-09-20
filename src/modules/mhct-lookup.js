@@ -6,7 +6,7 @@ import fetch from 'node-fetch';
 import { firstBy } from 'thenby';
 import { parse as csv_parse } from 'csv-parse';
 
-import {DatabaseFilter} from '../models/dbFilter.js';
+import { DatabaseFilter } from '../models/dbFilter.js';
 import {
     calculateRate,
     prettyPrintArrayAsString,
@@ -16,7 +16,7 @@ import {
     formatInterval,
     howManyHunts,
 } from '../modules/format-utils.js';
-import {Logger} from '../modules/logger.js';
+import { Logger } from '../modules/logger.js';
 import { getSearchedEntity, fuzzySearch } from '../modules/search-helpers.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 30 });
@@ -133,7 +133,7 @@ async function sendInteractiveSearchResult(
             : { embeds: [embed] };
 
     const executeCallback = async (asDM, entity) => {
-        let result = '';
+        let result;
         try {
             result = await dataCallback(asDM, entity, urlInfo.qsParams);
         } catch (err) {
@@ -839,7 +839,7 @@ function getMinluckString(
     shorten_flag = false,
     emojiMap = powerEmoji,
 ) {
-    let reply = '';
+    let reply;
     if (!flags || !Array.isArray(flags)) flags = powerFlags;
     if (!mouse || !(mouse.toLowerCase() in minlucks)) {
         reply = `Sorry, I don't know ${mouse}'s minluck values`;

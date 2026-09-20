@@ -1,8 +1,8 @@
 // eslint-disable-next-line no-unused-vars
 import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
-import {CommandResult} from '../interfaces/command-result.js';
-import {Logger} from '../modules/logger.js';
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
 import { initialize, getMice, getMinluckString, save } from '../modules/mhct-lookup.js';
 
 const usage = [
@@ -42,7 +42,7 @@ const typeMap = {
 async function doMINLUCK(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
     const allFlags = Object.keys(typeMap);
-    let reply = '';
+    let reply;
     if (!tokens)
         reply = 'Yeah, good luck with that...';
     else {

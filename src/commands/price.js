@@ -5,8 +5,8 @@ import {
     SlashCommandBuilder,
 } from 'discord.js';
 import { Duration } from 'luxon';
-import {CommandResult} from '../interfaces/command-result.js';
-import {Logger} from '../modules/logger.js';
+import { CommandResult } from '../interfaces/command-result.js';
+import { Logger } from '../modules/logger.js';
 import { fuzzySearch } from '../modules/search-helpers.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 120 });
@@ -65,7 +65,7 @@ async function execute(message, item) {
         sentDM: false,
     });
 
-    let reply = '';
+    let reply;
     if (!item.length) {
         reply = 'I just cannot find what you\'re looking for (since you didn\'t tell me what it was).';
     } else {

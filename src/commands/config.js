@@ -3,7 +3,7 @@ import { ChannelType, Message } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
-import {Logger} from '../modules/logger.js';
+import { Logger } from '../modules/logger.js';
 import { checkPerms } from '../modules/security.js';
 const usage = [
     'view - see current settings for this server',

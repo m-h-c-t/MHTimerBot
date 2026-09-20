@@ -7,7 +7,7 @@
  * @returns {string} The container contents as an nice string with Oxford comma punctuation.
  */
 function oxfordStringifyValues(container, final = 'and') {
-    let printables = [];
+    let printables;
     if (typeof container !== 'object')
         throw new TypeError(
             `Utils: bad input for 1st argument: Expected object, got ${typeof container}`,
@@ -215,7 +215,7 @@ function splitString(input) {
     }
     const splitRegexp = /[^\s"]+|"([^"]+)"/gi;
 
-    let match = '';
+    let match;
     do {
         match = splitRegexp.exec(input);
         if (match) {
@@ -366,7 +366,7 @@ function intToHuman(number) {
         return NaN;
     }
     number = parseInt(number, 10);
-    let reply = '';
+    let reply;
     if (number >= 1000000000) reply = Math.round(number / 10000000) / 100 + 'B';
     else if (number > 1000000) reply = Math.round(number / 10000) / 100 + 'M';
     else if (number > 1000) reply = Math.round(number / 10) / 100 + 'K';
@@ -453,13 +453,11 @@ function formatInterval(attractionRate, nHunts) {
         return NaN;
     }
     nHunts = parseInt(nHunts, 10);
-    let reply = '';
     const meanOffset =
         1.96 * Math.sqrt(attractionRate * ((1 - attractionRate) / nHunts));
     const lowBound = (attractionRate * 100 - meanOffset).toFixed(2);
     const highBound = (attractionRate * 100 + meanOffset).toFixed(2);
-    reply = lowBound + '% - ' + highBound + '%';
-    return reply;
+    return lowBound + '% - ' + highBound + '%';
 }
 
 /**
@@ -491,4 +489,4 @@ export {
     splitMessageRegex,
     formatInterval,
     howManyHunts,
-}
+};

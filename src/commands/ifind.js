@@ -1,9 +1,9 @@
 // eslint-disable-next-line no-unused-vars
 import { Message } from 'discord.js';
 
-import {CommandResult} from '../interfaces/command-result.js';
+import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
-import {Logger} from '../modules/logger.js';
+import { Logger } from '../modules/logger.js';
 import { extractEventFilter, getLoot, formatLoot,
     sendInteractiveSearchResult, listFilters, getMice, formatMice } from '../modules/mhct-lookup.js';
 
