@@ -28,6 +28,7 @@ function getKnownTimersDetails(timers_list) {
     // Prepare a detailed list of known timers and their sub-areas.
     /** @type {Object <string, Set<string>> */
     const details = {};
+    if (!timers_list || !Array.isArray(timers_list) || !timers_list.length) { return ''; }
     timers_list.forEach(timer => {
         const area = `**${timer.getArea()}**`;
         if (!details[area])
@@ -59,6 +60,7 @@ function timerAliases(timers_list, tokens) {
         sub_area: null,
         count: null,
     };
+    if (!timers_list || !Array.isArray(timers_list) || !timers_list.length) { return newReminder; }
     const timerAreas = timers_list.map(timer => timer.getArea());
     const timerSubAreas = timers_list.map(timer => timer.getSubArea());
     // Scan the input tokens and attempt to match them to a known timer.
