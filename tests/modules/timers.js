@@ -1,11 +1,11 @@
 // Required test imports
-const test = require('tape');
+import test from 'tape';
 
 // Functionality to be tested.
-const Timer = require('../../src/modules/timers');
+import {Timer} from '../../src/modules/timers.js';
 
 // Stub Logger methods to minimize crosstalk.
-const { stubLogger, restoreLogger } = require('../helpers/logging');
+import { stubLogger, restoreLogger } from '../helpers/logging.js';
 
 test('Timer ctor', function (suite) {
     let logStubs;

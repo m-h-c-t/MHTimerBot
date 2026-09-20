@@ -1,12 +1,12 @@
-const test = require('tape');
-const sinon = require('sinon');
+import {test} from 'tape';
+import sinon from 'sinon';
 
 // Stub Logger methods to minimize crosstalk.
-const { stubLogger, restoreLogger } = require('../helpers/logging');
+import { stubLogger, restoreLogger } from '../helpers/logging.js';
 // We need a decently realistic Message stub.
-const mockMessage = require('../helpers/mock-message');
+import {mockMessage} from '../helpers/mock-message.js';
 // Stub the timer helpers so we don't have to worry about tests failing due to time of day
-const { stubTimerHelper, restoreTimerHelper } = require('../helpers/timers');
+import { stubTimerHelper, restoreTimerHelper } from '../helpers/timers.js';
 
 // Declaration of what we're testing.
 /** @type {{ execute: (Message, tokens: string[] ) => Promise<import('../../src/interfaces/command-result')>}} */
@@ -20,8 +20,7 @@ test('commands - NEXT', suite => {
         timerStubs = stubTimerHelper();
 
         // Now that we have stubs active, we can require the test subject.
-        NEXT = require('../../src/commands/next');
-        t.end();
+        import('../../src/commands/next.js').then(c => {NEXT = c.command; t.end();}).catch(err => {t.fail(err); t.end();});
     });
 
     suite.test('when channel is dm - when replying - signals caller', async t => {

@@ -1,9 +1,9 @@
 // Required test imports
-const test = require('tape');
-const sinon = require('sinon');
+import {test} from 'tape';
+import sinon from 'sinon';
 
 // Functionality to be tested.
-const Logger = require('../../src/modules/logger');
+import {Logger} from '../../src/modules/logger.js';
 
 const utcRegex = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/;
 

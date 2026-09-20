@@ -1,6 +1,6 @@
-const { Collection, ChannelType } = require('discord.js');
-const Keys = require('../../src/utils/discord-enum-keys');
-const sinon = require('sinon');
+import { Collection, ChannelType } from 'discord.js';
+import { default as Keys} from '../../src/utils/discord-enum-keys.js';
+import sinon from 'sinon';
 
 /**
  * A facsimile of a Discord Message, for use in tests
@@ -12,7 +12,7 @@ const sinon = require('sinon');
  * @param {string} c.authorId A discord ID for the message's author
  * @param {object} c.clientStub An object representing the bot client
  */
-const mockMessage = ({
+export const mockMessage = ({
     channelType = 'GuildText',
     reactStub = sinon.stub(),
     replyStub = sinon.stub(),
@@ -50,5 +50,3 @@ const mockMessage = ({
     };
     return stub;
 };
-
-module.exports = mockMessage;
