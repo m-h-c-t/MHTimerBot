@@ -4,6 +4,7 @@ import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { command as findMouse } from '../../src/commands/find.js';
 import { command as findLoot } from '../../src/commands/ifind.js';
+import { command as help } from '../../src/commands/help.js';
 import { command as config } from '../../src/commands/config.js';
 import { command as minluck } from '../../src/commands/minluck.js';
 import { command as next } from '../../src/commands/next.js';
@@ -13,7 +14,7 @@ import { command as schedule } from '../../src/commands/schedule.js';
 import { command as whatsin } from '../../src/commands/whatsin.js';
 
 test('slash commands - all commands have optional public response option', suite => {
-    const commands = [config, findMouse, findLoot, minluck, next, price, remind, schedule, whatsin];
+    const commands = [config, findMouse, findLoot, help, minluck, next, price, remind, schedule, whatsin];
     suite.plan(commands.length * 2);
 
     for (const command of commands) {

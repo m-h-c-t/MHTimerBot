@@ -721,14 +721,14 @@ function parseUserMessage(message) {
                     break;
                 }
             // Fall through if user isn't the bot owner.
-            case 'help':
             case 'arrg':
             case 'aarg':
-            default: {
-                const helpMessage = getHelpMessage(message, tokens);
-                // TODO: Send help to PM?
-                message.channel.send(helpMessage ? helpMessage : 'Whoops! That\'s a bug.');
-            }
+                Promise.resolve(client.commands.get('help').execute(message, tokens))
+                    .catch(commandErr => Logger.error('Error executing help command', commandErr));
+                break;
+            default:
+                Promise.resolve(client.commands.get('help').execute(message, []))
+                    .catch(commandErr => Logger.error('Error executing help command', commandErr));
         }
     }
 }
@@ -964,59 +964,6 @@ function sendRemind(user, remind, timer) {
         () => remind.fail = 0,
         () => remind.fail = (remind.fail || 0) + 1,
     );
-}
-
-/**
- * Get the help text.
- * TODO: Should this be a EmbedBuilder?
- * TODO: Dynamically generate this information based on timers, etc.
- *
- * @param {Message} message The message that triggered the command
- * @param {string[]} [tokens] An array of user text, the first of which is the specific command to get help for.
- * @returns {string} The desired help text.
- */
-function getHelpMessage(message, tokens) {
-    // TODO: Remove these as external commands are added
-    const keywordArray = [ ]; // This was used for commands not properly moved out of this file.
-    const allowedCommands = client.commands
-        .filter(command => {
-            let canRun = false;
-            if (!command.minPerm)
-                canRun = true;
-            else if (message.author.id === message.client.settings.owner)
-                canRun = true;
-            else if (('member' in message) && checkPerms(message.member, command.minPerm))
-                canRun = true;
-            return canRun;
-        });
-    keywordArray.push(...allowedCommands.map(command => command.name));
-    const keywords = oxfordStringifyValues(keywordArray.map(name => `\`${name}\``));
-    const prefix = settings.botPrefix.trim();
-    if (!tokens || !tokens.length) {
-        return [
-            '**help**',
-            `I know the keywords ${keywords}.`,
-            `You can use \`${prefix} help <keyword>\` to get specific information about how to use it.`,
-            `Example: \`${prefix} help next\` provides help about the 'next' keyword, \`${prefix} help remind\` provides help about the 'remind' keyword.`,
-            'Pro Tip: **Most commands work in PM!**',
-        ].join('\n');
-    }
-
-    const command = tokens[0].toLowerCase();
-
-    const dynCommand = allowedCommands.get(command)
-        || allowedCommands.find(cmd => cmd.aliases && cmd.aliases.includes(command));
-    if (dynCommand) {
-        if ('helpFunction' in dynCommand)
-            return dynCommand.helpFunction();
-        else if (dynCommand.usage)
-            return `\`\`\`\n${prefix} ${dynCommand.name}:\n` +
-                `\t${dynCommand.usage.replace('\n', '\t\n')}\n\`\`\``;
-        else
-            return `I know how to ${command} but I don't know how to tell you how to ${command}`;
-    }
-    else
-        return `I don't know that one, but I do know ${keywords}.`;
 }
 
 /**

@@ -6,6 +6,7 @@ Next big push is make things into slash commands.
 
 ## Commands
 
+* help \<command\> / `/help` - Lists commands or displays help for one command; supports optional command autocomplete and public response
 * next \<area\> / `/next` - displays when the next timer occurs; slash replies are private by default, with an optional public response
   -next spill: The levels will rise to Arch in 2h31m
 * remind \<area\> [sub-area] [always|once|stop|<num>] / `/remind` - Sets, stops, or lists timer reminders (slash `count`: 1 by default, 0 to stop, -1 for always)
