@@ -69,7 +69,7 @@ client.timers_list = [];
 /** @type {TimerReminder[]} */
 client.reminders = [];
 
-const refresh_rate = Duration.fromObject({ minutes: 5 });
+const refresh_rate = Duration.fromObject({ minutes: 15 });
 /** @type {Object<string, DateTime>} */
 const last_timestamps = {
     reminder_save: DateTime.utc(),
