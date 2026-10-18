@@ -252,7 +252,7 @@ function Main() {
                     res[guildId] = new RegExp(`^${guild.botPrefix.trim()} `);
                 }
                 return res;
-            }, { hgReward: /(http[s]?:\/\/htgb\.co\/)/ }));
+            }, {}));
 
             client.on('messageCreate', async message => {
                 if (message.partial) {
@@ -282,10 +282,8 @@ function Main() {
                     settings.relic_hunter_webhook,
                 ].includes(message.webhookId)) {
                     handleRHWebhook(message);
-                } else if (message.channel.name === guildSettings.linkConversionChannel && re.hgReward.test(message.content.toLowerCase())) {
-                    convertRewardLink(message);
                 } else if (message.author.bot) {
-                    // The only supported bot-to-bot interaction is reward link conversion.
+                    // Ignore messages from other bots.
                 } else if (re[guildId].test(message.content) || message.content === guildSettings.botPrefix) {
                     parseUserMessage(message);
                 }
@@ -391,7 +389,6 @@ function migrateSettings(original_settings) {
         Logger.log('Settings: Migrating from version 0');
         const guild_settings = {
             timedAnnouncementChannels: new Set(Array.from(original_settings.timedAnnouncementChannels)),
-            linkConversionChannel: original_settings.linkConversionChannel,
             botPrefix: original_settings.botPrefix.trim(),
         };
         original_settings.guilds = client.guilds.cache.reduce((acc, guild) => {
@@ -401,6 +398,7 @@ function migrateSettings(original_settings) {
         original_settings.version = '1.00';
         delete original_settings.timedAnnouncementChannels;
         delete original_settings.linkConversionChannel;
+        delete original_settings.bitly_token;
     }
     // Perform additional updates based on the source version.
     switch (original_settings.version) {
@@ -428,6 +426,8 @@ async function loadSettings(path = main_settings_filename) {
     }
     // (Re)initialize any keys to the value specified in the file.
     Object.assign(settings, data);
+    delete settings.linkConversionChannel;
+    delete settings.bitly_token;
     // Set version-agnostic defaults, in case they have not been set.
     settings.relic_hunter_webhook ??= '283571156236107777';
     settings.owner ??= '0';
@@ -441,8 +441,6 @@ async function loadSettings(path = main_settings_filename) {
         // Pre version 1.00 logic
         try {
             // Set defaults if they were not specified.
-            settings.linkConversionChannel ??= 'larrys-freebies';
-
             settings.timedAnnouncementChannels ??= ['timers'];
             if (!Array.isArray(settings.timedAnnouncementChannels)) {
                 Logger.warn('Settings: attempting to parse unexpected "timed announcement channel" format');
@@ -461,6 +459,7 @@ async function loadSettings(path = main_settings_filename) {
     } else {
         try {
             for (const guild of Object.values(settings.guilds)) {
+                delete guild.linkConversionChannel;
                 guild.timedAnnouncementChannels = new Set(guild.timedAnnouncementChannels);
                 if (guild.newBotPrefix) {
                     Logger.log(`Settings: Migrating bot prefix to ${guild.newBotPrefix} for ${guild}`);
@@ -751,83 +750,6 @@ function parseUserMessage(message) {
         }
     }
 }
-/**
- * Convert a HitGrab short link into a BitLy short link that does not send the clicker to Facebook.
- * If successful, sends the converted link to the same channel that received the input message.
- *
- * @param {Message} message a Discord message containing at least one htgb.co URL.
- */
-async function convertRewardLink(message) {
-    if (!settings.bitly_token) {
-        Logger.warn(`Links: Received link to convert, but don't have a valid 'bitly_token' specified in settings: ${settings}.`);
-        return;
-    }
-
-    const links = message.content.replace(/[<>]/gm,'').split(/\s|\n/).map(t => t.trim()).filter(text => /(http[s]?:\/\/htgb\.co\/).*/g.test(text));
-    const newLinks = (await Promise.all(links.map(async link => {
-        const target = await getHGTarget(link.replace(/[^\x20-\x7E]/g, ''));
-        if (target) {
-            const shortLink = await getBitlyLink(target);
-            return shortLink ? { fb: link, mh: shortLink } : '';
-        } else {
-            return '';
-        }
-    }))).filter(nl => Boolean(nl));
-    if (!newLinks.length)
-        return;
-
-    let response = `<${newLinks[0].mh}> <-- Non-Facebook Link`;
-    if (newLinks.length > 1) {
-        // Print both old and new link on same line:
-        response = 'Facebook Link --> Non-Facebook Link:\n';
-        response += newLinks.map(linkData => `<${linkData.fb}> --> <${linkData.mh}>`).join('\n');
-    }
-
-    message.channel.send(response);
-
-    /** Get the redirect url from htgb.co
-     * @param {string} url A htgb.co link to be shortened.
-     * @returns {Promise<string>} A mousehuntgame.com link that should be converted.
-     */
-    function getHGTarget(url) {
-        return fetch(url, { redirect: 'manual' }).then((response) => {
-            if (response.status === 301) {
-                const facebookURL = response.headers.get('location');
-                return facebookURL.replace('https://apps.facebook.com/mousehunt', 'https://www.mousehuntgame.com');
-            } else {
-                throw `HTTP ${response.status}`;
-            }
-        }).catch((err) => Logger.error('Links: GET to htgb.co failed with error', err))
-            .then(result => result || '');
-    }
-
-    /**
-     * Shorten the given link using the Bit.ly API.
-     * @param {string} url The link to be shortened.
-     * @returns {Promise<string>} A bit.ly link with the same resolved address, except to a non-Facebook site.
-     */
-    function getBitlyLink(url) {
-        const options = {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${settings.bitly_token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ long_url: url }),
-        };
-        return fetch('https://api-ssl.bitly.com/v4/shorten', options).then(async (response) => {
-            if ([200, 201].includes(response.status)) {
-                const { link } = await response.json();
-                return link;
-            } else {
-                // TODO: API rate limit error handling? Could delegate to caller. Probably not an issue with this bot.
-                throw `HTTP ${response.status}`;
-            }
-        }).catch((err) => Logger.error('Links: Bitly shortener failed with error:', err))
-            .then(result => result || '');
-    }
-}
-
 /**
  * @typedef {object} TimerReminder
  * @property {string} user A Snowflake representing the user who requested the reminder.

@@ -27,7 +27,7 @@ Next big push is make things into slash commands.
 
 Note: If you just want to use existing bot on your own discord server, ask Aardwolf if you can join our bot testing. Otherwise, these instructions are to host your own copy of the bot, so you can help us develop and customize it.
 
-Note: The slash commands should work, everything else is buggy right now. Please submit your feedback or questions in official MH Discord in the Comm Tools Thread named "Larry Updates".
+Note: The slash commands should work, everything else is buggy right now. Please submit your feedback or questions in the official MH Discord Comm Tools thread.
 
 1. Log into discord in a browser and create a discord bot account [like this](https://discordpy.readthedocs.io/en/stable/discord.html)
 2. In the [bot account settings](https://discord.com/developers/applications):
@@ -45,12 +45,9 @@ Note: The slash commands should work, everything else is buggy right now. Please
 5. Modify the `data/settings.json` (copy it from the sample file provided there):
     * token (REQUIRED) - this is your bot token
     * owner ID (REQUIRED) - this is your discord numerical id
-    * bitly_token - this does link conversion. Not setting this just causes weird output but the bot works fine.
-    * linkConversionChannel - the name of the channel to monitor for links (default: larrys-freebies)
     * timedAnnouncementsChannel - the name of the channel to announce timers in (default: timers)
     * botPrefix - the prefix for the bot's commands (default: -mh)
 6. Make sure you have nodejs (minimum v16.15) and npm installed
 7. Run `npm install` inside the repo folder
 8. Run `node src/MHTimer.js` to start the bot or `nohup node src/MHTimers.js >error.log 2>&1 &` to run it in background.
-
 
