@@ -136,7 +136,10 @@ async function autotype(interaction) {
             const filter = getFilter(focusedOption.value || '');
             const choices = filter ? [filter] : [];
             await interaction.respond(
-                choices.map(filter => ({ name: filter.code_name, value: filter.code_name })),
+                choices.map(filter => ({
+                    name: filter.display_name || filter.code_name,
+                    value: filter.code_name,
+                })),
             );
         }
     }

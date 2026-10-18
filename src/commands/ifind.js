@@ -102,7 +102,10 @@ async function autotype(interaction) {
     } else if (focusedOption.name === 'filter') {
         const filter = getFilter(focusedOption.value);
         await interaction.respond(
-            filter ? [{ name: filter.code_name, value: filter.code_name }] : [],
+            filter ? [{
+                name: filter.display_name || filter.code_name,
+                value: filter.code_name,
+            }] : [],
         );
     }
 }

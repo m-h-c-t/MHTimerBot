@@ -541,21 +541,22 @@ async function formatConvertibles(isDM, convertible, opts) {
 function getFilter(tester) {
     // Process filter-y nicknames.
     if (!tester || typeof tester !== 'string') return;
+    const normalizedTester = tester.toLowerCase();
     const asFilterSearchTerm = (token) => {
         if (/^3_?d/i.test(token)) return '3_days';
         if (/^3_?m/i.test(token)) return '3_months';
         if (/^all/i.test(token)) return 'alltime';
-        if (token === 'current') return '1_month';
+        if (token.toLowerCase() === 'current') return '1_month';
         return token;
     };
     // If there is an ongoing event, we will use that instead of the 1-month filter.
-    if (tester === 'current') {
+    if (normalizedTester === 'current') {
         const currentEvent = filters.find(
             (f) => f.code_name !== '1_month' && f.start_time && !f.end_time,
         );
         if (currentEvent) return currentEvent;
     }
-    const searchTerm = asFilterSearchTerm(tester);
+    const searchTerm = asFilterSearchTerm(normalizedTester);
     return getSearchedEntity(searchTerm, filters)[0];
 }
 
@@ -913,12 +914,16 @@ function sortMinluck(a, b) {
 function code_name_reduce(accumulator, current) {
     // Empty entry? Skip it.
     if (!current?.code_name) return accumulator;
+    const displayName = current.display_name || current.code_name;
+    const filterLabel = displayName === current.code_name
+        ? `\`${current.code_name}\``
+        : `\`${displayName}\` (\`${current.code_name}\`)`;
     // Existing items? Join with comma.
     if (accumulator) {
-        return `${accumulator}, \`${current.code_name}\``;
+        return `${accumulator}, ${filterLabel}`;
     }
     // This is the first item in the list.
-    return `\`${current.code_name}\``;
+    return filterLabel;
 }
 
 /**
@@ -981,4 +986,3 @@ export { getMHCTList,
     listFilters, 
     save, 
     getMinluckString };
-
