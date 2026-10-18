@@ -124,7 +124,7 @@ async function autotype(interaction) {
             const choices = getMice(focusedOption.value, interaction.client.nicknames.get('mice')) || [];
             if (searchString && ['rh', 'relic hunter', 'relic_hunter'].some(alias =>
                 alias.startsWith(searchString) || searchString.startsWith(alias))) {
-                choices.push({ value: 'relic hunter' });
+                choices.push({ value: 'Relic Hunter' });
             }
             if (choices.length) {
                 await interaction.respond(
