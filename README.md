@@ -11,7 +11,7 @@ Next big push is make things into slash commands.
 * remind \<area\> [sub-area] [always|once|stop|<num>] - Sends a PM to remind of ANY timer for an area
   -remind season once - Will only remind the next time the timer goes
   -remind season winter once - Will only remind the next time the timer goes
-* schedule \<area\> [\<number\>] - Shows the timers for the next \<number\> of days for an area
+* schedule \<area\> [\<number\>] / `/schedule` - Shows upcoming timers; slash options filter by area, sub-area, and hours
   -schedule spill 2 - The levels will rise to Arch in 2h31m / The levels will fall through Arch in 1d2h31m
 * find \<mouse\> - Finds a mouse using MHCT data. You need up to three characters of the start of the mouse's name
   -find Ful'mina OR -find ful

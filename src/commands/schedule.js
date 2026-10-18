@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message } from 'discord.js';
+import { Message, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { DateTime, Duration } from 'luxon';
 import { CommandResult } from '../interfaces/command-result.js';
@@ -25,17 +25,10 @@ const usage = [
  */
 async function doSCHED(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
-    let reply;
     const timerRequest = timerAliases(message.client.timers_list, tokens);
+    const { reply, isValid } = getScheduleReply(message.client.timers_list, timerRequest);
 
-    // Default the searched time period to 24 hours if it was not specified.
-    timerRequest.count = timerRequest.count || 24;
-
-    const area = timerRequest.area;
-
-    // Search from 1 hour to 10 days out.
-    let req_hours = Duration.fromObject({ hours: timerRequest.count });
-    if (!req_hours.isValid) {
+    if (!isValid) {
         try {
             await message.channel.send('Invalid timespan given - how many hours did you want to look ahead?');
             theResult.replied = true;
@@ -47,37 +40,6 @@ async function doSCHED(message, tokens) {
         }
         return theResult;
     }
-    else if (req_hours.as('hours') <= 0)
-        req_hours = req_hours.set({ hours: 24 });
-    else if (req_hours.as('days') >= 10)
-        req_hours = req_hours.shiftTo('days').set({ days: 10 });
-
-    // Get the next occurrence for every timer. Compare its interval to determine how many of them to include
-    const until = DateTime.utc().plus(req_hours);
-    /** @type {{time: DateTime, message: string}[]} */
-    const upcoming_timers = [];
-    const max_timers = 24;
-    (!area ? message.client.timers_list : message.client.timers_list.filter(t => t.getArea() === area && !t.isSilent()))
-        .forEach(timer => {
-            const message = timer.getDemand();
-            for (const time of timer.upcoming(until))
-                upcoming_timers.push({ time, message });
-        });
-
-    // Sort the list of upcoming timers in this area by time, so that the soonest is printed first.
-    upcoming_timers.sort((a, b) => a.time - b.time);
-
-    // Make a nice message to display.
-    reply = `I have ${upcoming_timers.length} timers coming up in the next ${req_hours.as('hours')} hours`;
-    if (upcoming_timers.length > max_timers) {
-        reply += `. Here are the next ${max_timers} of them`;
-        upcoming_timers.splice(max_timers, upcoming_timers.length);
-    }
-    reply += upcoming_timers.length ? ':\n' : '.';
-
-    reply = upcoming_timers.reduce((str, val) => {
-        return `${str}${val.message} ${timeLeft(val.time)}\n`;
-    }, reply);
 
     if (reply) {
         try {
@@ -100,6 +62,129 @@ async function doSCHED(message, tokens) {
     return theResult;
 }
 
+function getScheduleReply(timers, timerRequest) {
+    // Default the searched time period to 24 hours if it was not specified.
+    timerRequest.count = timerRequest.count || 24;
+
+    // Search from 1 hour to 10 days out.
+    let reqHours = Duration.fromObject({ hours: timerRequest.count });
+    if (!reqHours.isValid) return { reply: '', isValid: false };
+    if (reqHours.as('hours') <= 0)
+        reqHours = reqHours.set({ hours: 24 });
+    else if (reqHours.as('days') >= 10)
+        reqHours = reqHours.shiftTo('days').set({ days: 10 });
+
+    const until = DateTime.utc().plus(reqHours);
+    /** @type {{time: DateTime, message: string}[]} */
+    const upcomingTimers = [];
+    const maxTimers = 24;
+    const areaTimers = timerRequest.area
+        ? timers.filter(timer => timer.getArea() === timerRequest.area
+            && (!timerRequest.sub_area || timer.getSubArea() === timerRequest.sub_area)
+            && !timer.isSilent())
+        : timers;
+    areaTimers.forEach(timer => {
+        const message = timer.getDemand();
+        for (const time of timer.upcoming(until))
+            upcomingTimers.push({ time, message });
+    });
+
+    upcomingTimers.sort((a, b) => a.time - b.time);
+
+    let reply = `I have ${upcomingTimers.length} timers coming up in the next ${reqHours.as('hours')} hours`;
+    if (upcomingTimers.length > maxTimers) {
+        reply += `. Here are the next ${maxTimers} of them`;
+        upcomingTimers.splice(maxTimers, upcomingTimers.length);
+    }
+    reply += upcomingTimers.length ? ':\n' : '.';
+
+    reply = upcomingTimers.reduce((str, val) => {
+        return `${str}${val.message} ${timeLeft(val.time)}\n`;
+    }, reply);
+
+    return { reply, isValid: true };
+}
+
+/**
+ * Reply to an autocomplete request with area and sub-area names from the loaded timers.
+ * @param {CommandInteraction} interaction Must be an autocomplete interaction
+ */
+async function autotype(interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const focusedOption = interaction.options.getFocused(true);
+    const timers = interaction.client.timers_list;
+    let values;
+    if (focusedOption.name === 'area') {
+        values = [...new Set(timers.map(timer => timer.getArea()))];
+    } else if (focusedOption.name === 'sub-area') {
+        const area = interaction.options.getString('area');
+        values = [...new Set(timers
+            .filter(timer => !area || timer.getArea() === area)
+            .map(timer => timer.getSubArea())
+            .filter(Boolean))];
+    } else {
+        return;
+    }
+
+    const search = focusedOption.value.toLowerCase();
+    await interaction.respond(
+        values
+            .filter(value => value.toLowerCase().includes(search))
+            .slice(0, 25)
+            .map(value => ({ name: value, value })),
+    );
+}
+
+/**
+ * Reply to a slash command.
+ * @param {CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const tokens = [
+        interaction.options.getString('area'),
+        interaction.options.getString('sub-area'),
+        interaction.options.getInteger('hours')?.toString(),
+    ].filter(Boolean);
+    const timerRequest = timerAliases(interaction.client.timers_list, tokens);
+    const { reply, isValid } = getScheduleReply(interaction.client.timers_list, timerRequest);
+    if (!isValid) {
+        await interaction.reply({
+            content: 'Invalid timespan given - how many hours did you want to look ahead?',
+            ephemeral: true,
+        });
+        return;
+    }
+
+    const pages = splitMessageRegex(reply);
+    await interaction.reply({ content: pages[0] });
+    for (const page of pages.slice(1)) {
+        await interaction.followUp({ content: page });
+    }
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('schedule')
+    .setDescription('Show upcoming MouseHunt timers')
+    .addStringOption(option =>
+        option.setName('area')
+            .setDescription('Filter timers to an area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addStringOption(option =>
+        option.setName('sub-area')
+            .setDescription('Filter timers to a sub-area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addIntegerOption(option =>
+        option.setName('hours')
+            .setDescription('How many hours ahead to look (default: 24; maximum: 240)')
+            .setRequired(false)
+            .setMinValue(1)
+            .setMaxValue(240));
+
 export const command = {
     name: 'schedule',
     args: true,
@@ -107,5 +192,8 @@ export const command = {
     description: 'Set and retrieve reminders for MouseHunt Timers',
     canDM: true,
     aliases: ['sched', 'agenda', 'itinerary', 'itin'],
+    slashCommand,
+    autocompleteHandler: autotype,
+    interactionHandler: interact,
     execute: doSCHED,
 };
