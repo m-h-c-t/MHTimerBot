@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
@@ -66,6 +66,87 @@ async function doNEXT(message, tokens) {
     return theResult;
 }
 
+/**
+ * Reply to timer area and sub-area autocomplete requests.
+ * @param {CommandInteraction} interaction Must be an autocomplete interaction
+ */
+async function autotype(interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const focusedOption = interaction.options.getFocused(true);
+    const timers = interaction.client.timers_list;
+    let values;
+    if (focusedOption.name === 'area') {
+        values = [...new Set(timers.map(timer => timer.getArea()))];
+    } else if (focusedOption.name === 'sub-area') {
+        const area = interaction.options.getString('area');
+        values = [...new Set(timers
+            .filter(timer => !area || timer.getArea() === area)
+            .map(timer => timer.getSubArea())
+            .filter(Boolean))];
+    } else {
+        return;
+    }
+
+    const search = focusedOption.value.toLowerCase();
+    await interaction.respond(
+        values
+            .filter(value => value.toLowerCase().includes(search))
+            .slice(0, 25)
+            .map(value => ({ name: value, value })),
+    );
+}
+
+/**
+ * Reply to a slash command.
+ * @param {CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    const tokens = [
+        interaction.options.getString('area'),
+        interaction.options.getString('sub-area'),
+    ].filter(Boolean);
+    const timers = interaction.client.timers_list;
+    const timerRequest = timerAliases(timers, tokens);
+    let reply;
+
+    if (!tokens.length || !timerRequest.area) {
+        const knownTimers = getKnownTimersDetails(timers).split('\n');
+        const listedTimers = isPublic ? knownTimers.slice(0, 10) : knownTimers;
+        reply = `I know these timers:\n${listedTimers.join('\n')}`;
+        if (isPublic && knownTimers.length > listedTimers.length)
+            reply += `\nShowing the first 10 of ${knownTimers.length} timer areas.`;
+    } else {
+        reply = nextTimer(timers, timerRequest, '/remind');
+    }
+
+    await interaction.reply({
+        ...(typeof reply === 'string' ? { content: reply } : { embeds: [reply] }),
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('next')
+    .setDescription('Show when a MouseHunt timer occurs next')
+    .addStringOption(option =>
+        option.setName('area')
+            .setDescription('Timer area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addStringOption(option =>
+        option.setName('sub-area')
+            .setDescription('Specific timer in the area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (timer list limited to 10 areas)')
+            .setRequired(false));
+
 export const command = {
     name: 'next',
     args: true,
@@ -73,4 +154,7 @@ export const command = {
     description: 'Display timer information',
     canDM: true,
     execute: doNEXT,
+    slashCommand,
+    autocompleteHandler: autotype,
+    interactionHandler: interact,
 };

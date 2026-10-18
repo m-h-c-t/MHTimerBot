@@ -6,7 +6,7 @@ Next big push is make things into slash commands.
 
 ## Commands
 
-* next \<area\> - displays how long until the next timer of that type and what the display message would be
+* next \<area\> / `/next` - displays when the next timer occurs; slash replies are private by default, with an optional public response
   -next spill: The levels will rise to Arch in 2h31m
 * remind \<area\> [sub-area] [always|once|stop|<num>] / `/remind` - Sets, stops, or lists timer reminders (slash `count`: 1 by default, 0 to stop, -1 for always)
   -remind season once - Will only remind the next time the timer goes

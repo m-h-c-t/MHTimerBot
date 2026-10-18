@@ -341,7 +341,7 @@ function parseTokenForArea(token, newReminder) {
  * Returns the next occurrence of the desired class of timers as a Message Embed.
  * @param {Timer[]} timers_list List of known timers
  * @param {ReminderRequest} validTimerData Validated input that is known to match an area and subarea
- * @param {string} botPrefix The prefix for the bot on this guild
+ * @param {string} botPrefix The prefix for the bot on this guild, or slash syntax indicator
  * @returns {EmbedBuilder} A rich snippet summary of the next occurrence of the matching timer.
  */
 function nextTimer(timers_list, validTimerData, botPrefix) {
@@ -356,7 +356,9 @@ function nextTimer(timers_list, validTimerData, botPrefix) {
             if (!nextTimer || timer.getNext() < nextTimer.getNext())
                 nextTimer = timer;
 
-    const sched_syntax = `${botPrefix} remind ${area}${sub ? ` ${sub}` : ''}`;
+    const sched_syntax = botPrefix === '/remind'
+        ? `/remind area: ${area}${sub ? ` sub-area: ${sub}` : ''}`
+        : `${botPrefix} remind ${area}${sub ? ` ${sub}` : ''}`;
     return (new EmbedBuilder()
         .setDescription(nextTimer.getDemand()
             + `\n${timeLeft(nextTimer.getNext())}`
