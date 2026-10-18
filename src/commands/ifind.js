@@ -5,7 +5,7 @@ import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
 import { Logger } from '../modules/logger.js';
 import { extractEventFilter, getLoot, formatLoot,
-    sendInteractiveSearchResult, listFilters, getMice, formatMice, getFilter } from '../modules/mhct-lookup.js';
+    sendInteractiveSearchResult, listFilters, getMice, formatMice, getFilter, getFilters } from '../modules/mhct-lookup.js';
 
 /**
  *
@@ -100,12 +100,12 @@ async function autotype(interaction) {
             choices.slice(0, 25).map(loot => ({ name: loot.value, value: loot.value })),
         );
     } else if (focusedOption.name === 'filter') {
-        const filter = getFilter(focusedOption.value);
+        const filters = getFilters(focusedOption.value);
         await interaction.respond(
-            filter ? [{
+            filters.map(filter => ({
                 name: filter.display_name || filter.code_name,
                 value: filter.code_name,
-            }] : [],
+            })),
         );
     }
 }

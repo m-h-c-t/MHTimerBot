@@ -538,9 +538,9 @@ async function formatConvertibles(isDM, convertible, opts) {
  * @param {string} tester String to check if it's a filter
  * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
  */
-function getFilter(tester) {
+function getFilters(tester) {
     // Process filter-y nicknames.
-    if (!tester || typeof tester !== 'string') return;
+    if (!tester || typeof tester !== 'string') return [];
     const normalizedTester = tester.toLowerCase();
     const asFilterSearchTerm = (token) => {
         if (/^3_?d/i.test(token)) return '3_days';
@@ -554,10 +554,19 @@ function getFilter(tester) {
         const currentEvent = filters.find(
             (f) => f.code_name !== '1_month' && f.start_time && !f.end_time,
         );
-        if (currentEvent) return currentEvent;
+        if (currentEvent) return [currentEvent];
     }
     const searchTerm = asFilterSearchTerm(normalizedTester);
-    return getSearchedEntity(searchTerm, filters)[0];
+    return getSearchedEntity(searchTerm, filters, 25);
+}
+
+/**
+ * Gets the closest filter matching the given string, if possible.
+ * @param {string} tester String to check if it's a filter
+ * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
+ */
+function getFilter(tester) {
+    return getFilters(tester)[0];
 }
 
 /**
@@ -974,7 +983,8 @@ export { getMHCTList,
     initialize, 
     findThing, 
     extractEventFilter, 
-    getFilter, 
+    getFilter,
+    getFilters,
     getLoot, 
     getMice, 
     getConvertibles, 

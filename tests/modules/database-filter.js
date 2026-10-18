@@ -33,3 +33,21 @@ test('database filters - display labels and code names are searchable', suite =>
         'matches codes case-insensitively',
     );
 });
+
+test('database filter search - returns multiple matching event filters', suite => {
+    const filters = Array.from({ length: 9 }, (_, index) => {
+        const year = 2018 + index;
+        return new DatabaseFilter(`halloween_${year}`, {
+            display_name: `Halloween ${year}`,
+        });
+    });
+    const matches = getSearchedEntity('halloween', filters, 25);
+    suite.plan(2);
+
+    suite.equal(matches.length, 9, 'returns all matching filters instead of one match');
+    suite.deepEqual(
+        matches.map(filter => filter.code_name),
+        filters.map(filter => filter.code_name),
+        'returns every Halloween year in display-name order',
+    );
+});

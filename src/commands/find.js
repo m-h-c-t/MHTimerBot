@@ -4,7 +4,7 @@ import { Message, MessageFlags, CommandInteraction, ActionRowBuilder, ButtonBuil
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
 import { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
-    listFilters, getLoot, formatLoot, save, getFilter } from '../modules/mhct-lookup.js';
+    listFilters, getLoot, formatLoot, save, getFilters } from '../modules/mhct-lookup.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
 
 /**
@@ -133,10 +133,9 @@ async function autotype(interaction) {
             }
         }
         else if (focusedOption.name === 'filter') {
-            const filter = getFilter(focusedOption.value || '');
-            const choices = filter ? [filter] : [];
+            const filters = getFilters(focusedOption.value || '');
             await interaction.respond(
-                choices.map(filter => ({
+                filters.map(filter => ({
                     name: filter.display_name || filter.code_name,
                     value: filter.code_name,
                 })),

@@ -5,9 +5,10 @@ import fuzzysort from 'fuzzysort';
  *
  * @param {string} input The text to match against
  * @param {Array<{ value: string, lowerValue: string, [x: string]: any }>} values An array of objects with a lowerValue property.
- * @returns {Array<{ value: string, [x: string]: any }>} Up to 10 values, sorted descending by their similarity to the input.
+ * @param {number} [limit=10] Maximum number of matches to return
+ * @returns {Array<{ value: string, [x: string]: any }>} Matching values sorted descending by their similarity to the input.
  */
-function getSearchedEntity(input, values) {
+function getSearchedEntity(input, values, limit = 10) {
     if (!input.length || !Array.isArray(values) || !values.length) {
         return [];
     }
@@ -22,8 +23,8 @@ function getSearchedEntity(input, values) {
         // Sort lexicographically if the scores are equal.
         return r ? r : a.entity.value.localeCompare(b.entity.value, { sensitivity: 'base' });
     });
-    // Keep only the top 10 results.
-    matches.splice(10);
+    // Keep only the top requested number of results.
+    matches.splice(limit);
     return matches.map(m => m.entity);
 }
 
