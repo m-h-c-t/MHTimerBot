@@ -183,60 +183,37 @@ async function interactionDisplayPage(interaction, pages, current_page) {
     if (interaction.id && interaction.isChatInputCommand() && pages.length) {
         const isPublic = interaction.options.getBoolean('public') ?? false;
         current_page = current_page || 0;
-        // Build buttons
-        let buttons = new ActionRowBuilder();
+        let buttons;
         if (pages.length > current_page + 1) {
-            buttons = buttons.addComponents(new ButtonBuilder()
+            buttons = new ActionRowBuilder().addComponents(new ButtonBuilder()
                 .setCustomId(`fmmore_${interaction.id}_${current_page}`)
                 .setLabel('More Results')
                 .setStyle(ButtonStyle.Primary));
-            // Logger.log(`FIND: Page ${current_page} of ${pages.length}`);
         }
-        const share_button = new ButtonBuilder()
-            .setCustomId(`fmshare_${interaction.id}_${current_page}`)
-            .setLabel('Send to Channel')
-            .setStyle(ButtonStyle.Primary);
-        buttons = buttons.addComponents(share_button);
-        // Set filter
-        const filter = f => (f.customId === `fmshare_${interaction.id}_${current_page}` || f.customId === `fmmore_${interaction.id}_${current_page}`)
-                            && f.user.id === interaction.user.id;
-        // Set collector
-        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
-        collector.on('collect', async c => {
-            if (c.customId === `fmshare_${interaction.id}_${current_page}`) {
-                const sharer = interaction.user;
-                const allow_share = true;
-                if (allow_share) {
-                    // TODO: Probably better to calculate X lines of attractions for sharing
-                    await c.message.channel.send({ content: `<@${sharer.id}> used \`/find-mouse ${interaction.options.getString('mouse')}\`:\n${pages[current_page]}` });
-                    await c.update({ content: 'Shared', components: [ buttons ] })
-                        .catch((error) => Logger.error(error));
-                } else {
-                    await c.reply({ content: 'Sorry, share is turned off right now', flags: MessageFlags.Ephemeral });
-                }
-            }
-            else if (c.customId === `fmmore_${interaction.id}_${current_page}`) {
-                // Here we use only the first chunk of results for sharing if it's not a DM
-                // Logger.log(`Find-mouse: Sending next page of results, ${current_page}`);
+        if (buttons) {
+            const filter = f => f.customId === `fmmore_${interaction.id}_${current_page}`
+                && f.user.id === interaction.user.id;
+            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
+            collector.on('collect', async c => {
                 await interactionDisplayPage(interaction, pages, current_page+1);
-                await c.update({ content: pages[current_page], components: [ buttons ] })
+                await c.update({ content: pages[current_page], components: [buttons] })
                     .catch((error) => Logger.error(error));
-            }
-        });
-        collector.on('end', async () => {
-            await interaction.editReply({ content: pages[current_page], components: [] })
-                .catch(e => {
-                    Logger.error(`FIND-MOUSE: ${e}`);
-                });
-        });
+            });
+            collector.on('end', async () => {
+                await interaction.editReply({ content: pages[current_page], components: [] })
+                    .catch(e => {
+                        Logger.error(`FIND-MOUSE: ${e}`);
+                    });
+            });
+        }
         // Send message
         if (current_page === 0) {
-            await interaction.editReply({ content: pages[current_page], components: [ buttons ] });
+            await interaction.editReply({ content: pages[current_page], components: buttons ? [buttons] : [] });
         } else {
             await interaction.followUp({
                 content: pages[current_page],
                 flags: isPublic ? undefined : MessageFlags.Ephemeral,
-                components: [ buttons ],
+                components: buttons ? [buttons] : [],
             });
         }
     }

@@ -56,10 +56,11 @@ test('slash command - minluck defaults to private and can be public', async suit
         reply: sinon.stub().resolves(),
         editReply: sinon.stub().resolves(),
     };
-    suite.plan(2);
+    suite.plan(3);
 
     await minluck.interactionHandler(interaction);
     suite.equal(interaction.reply.firstCall.args[0].flags, MessageFlags.Ephemeral, 'defaults to ephemeral');
+    suite.notOk(interaction.reply.firstCall.args[0].components, 'does not attach a share button');
 
     interaction.options.getBoolean = () => true;
     await minluck.interactionHandler(interaction);
