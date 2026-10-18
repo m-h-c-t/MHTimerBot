@@ -534,14 +534,20 @@ async function formatConvertibles(isDM, convertible, opts) {
 }
 
 /**
- * Gets the filter that matches the given string, if possible.
+ * Gets filters matching the given search string for autocomplete.
  * @param {string} tester String to check if it's a filter
- * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
+ * @param {DatabaseFilter[]} [availableFilters] Filters to search; defaults to the loaded filter list
+ * @returns {DatabaseFilter[]} Matching filters
  */
-function getFilters(tester) {
+function getFilters(tester, availableFilters = filters) {
     // Process filter-y nicknames.
-    if (!tester || typeof tester !== 'string') return [];
-    const normalizedTester = tester.toLowerCase();
+    if (typeof tester !== 'string') return [];
+    const normalizedTester = tester.trim().toLowerCase();
+    if (!normalizedTester)
+        return sortFiltersByStartTime(
+            availableFilters.filter(filter => !filter.end_time),
+        ).slice(0, 25);
+
     const asFilterSearchTerm = (token) => {
         if (/^3_?d/i.test(token)) return '3_days';
         if (/^3_?m/i.test(token)) return '3_months';
@@ -551,13 +557,25 @@ function getFilters(tester) {
     };
     // If there is an ongoing event, we will use that instead of the 1-month filter.
     if (normalizedTester === 'current') {
-        const currentEvent = filters.find(
+        const currentEvent = availableFilters.find(
             (f) => f.code_name !== '1_month' && f.start_time && !f.end_time,
         );
         if (currentEvent) return [currentEvent];
     }
     const searchTerm = asFilterSearchTerm(normalizedTester);
-    return getSearchedEntity(searchTerm, filters, 25);
+    return sortFiltersByStartTime(
+        getSearchedEntity(searchTerm, availableFilters, availableFilters.length),
+    ).slice(0, 25);
+}
+
+function sortFiltersByStartTime(matchingFilters) {
+    return matchingFilters.sort((a, b) => {
+        const parsedA = Number(a.start_time);
+        const parsedB = Number(b.start_time);
+        const startA = Number.isFinite(parsedA) ? parsedA : Number.NEGATIVE_INFINITY;
+        const startB = Number.isFinite(parsedB) ? parsedB : Number.NEGATIVE_INFINITY;
+        return startB - startA;
+    });
 }
 
 /**
@@ -566,6 +584,7 @@ function getFilters(tester) {
  * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
  */
 function getFilter(tester) {
+    if (typeof tester !== 'string' || !tester.trim()) return;
     return getFilters(tester)[0];
 }
 
