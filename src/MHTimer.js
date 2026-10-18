@@ -113,10 +113,10 @@ for (const file of commandFiles) {
 Logger.log(`Commands: Loaded ${client.commands.size} commands: ${oxfordStringifyValues(client.commands.map(command => command.name))}`);
 
 process.once('SIGINT', () => {
-    client.destroy();
+    quit();
 });
 process.once('SIGTERM', () => {
-    client.destroy();
+    quit();
 });
 
 process.on('uncaughtException', exception => {
@@ -329,8 +329,11 @@ catch(error) {
     Logger.error('Error executing Main:\n', error);
 }
 
+let shutdownPromise;
 function quit() {
-    return doSaveAll()
+    if (shutdownPromise) return shutdownPromise;
+
+    shutdownPromise = doSaveAll()
         .then(
             () => Logger.log('Shutdown: data saves completed'),
             (err) => {
@@ -357,6 +360,7 @@ function quit() {
             Logger.error('Shutdown: unhandled error:\n', err, '\nImmediately exiting.');
             process.exit(1);
         });
+    return shutdownPromise;
 }
 client.shutdown = quit;
 
