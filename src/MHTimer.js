@@ -75,7 +75,7 @@ const last_timestamps = {
     reminder_save: DateTime.utc(),
 };
 
-/** @type {Object <string, NodeJS.Timer>} */
+/** @type {Object <string, NodeJS.Timeout>} */
 const dataTimers = {};
 /** @type {Map <string, {active: boolean, channels: TextChannel[], inactiveChannels: TextChannel[]}>} */
 const timer_config = new Map();
