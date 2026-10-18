@@ -4,6 +4,22 @@ import sinon from 'sinon';
 import { mockMessage } from '../helpers/mock-message.js';
 import { command } from '../../src/commands/find.js';
 
+test('commands - find filter autocomplete responds with an empty choice list when no filter matches', async suite => {
+    const respond = sinon.stub().resolves();
+    const interaction = {
+        isAutocomplete: () => true,
+        options: {
+            getFocused: () => ({ name: 'filter', value: 'no matching filter' }),
+        },
+        respond,
+    };
+    suite.plan(1);
+
+    await command.autocompleteHandler(interaction);
+
+    suite.deepEqual(respond.firstCall.args[0], [], 'responds with no choices when the filter does not match');
+});
+
 test('commands - find Relic Hunter', async suite => {
     const aliases = ['rh', 'relic_hunter', 'relic hunter'];
     suite.teardown(() => sinon.restore());
