@@ -11,10 +11,11 @@ import { command as next } from '../../src/commands/next.js';
 import { command as price } from '../../src/commands/price.js';
 import { command as remind } from '../../src/commands/remind.js';
 import { command as schedule } from '../../src/commands/schedule.js';
+import { command as shutdown } from '../../src/commands/shutdown.js';
 import { command as whatsin } from '../../src/commands/whatsin.js';
 
 test('slash commands - all commands have optional public response option', suite => {
-    const commands = [config, findMouse, findLoot, help, minluck, next, price, remind, schedule, whatsin];
+    const commands = [config, findMouse, findLoot, help, minluck, next, price, remind, schedule, shutdown, whatsin];
     suite.plan(commands.length * 2);
 
     for (const command of commands) {

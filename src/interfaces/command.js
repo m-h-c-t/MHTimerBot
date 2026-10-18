@@ -6,6 +6,7 @@
  * @property {string} [usage] - Detailed usage text for the command
  * @property {string[]} [aliases] - Alternative names for the command (all must be lowercase)
  * @property {'admin'|'mod'} [minPerm] - Minimum permission required to use the command
+ * @property {boolean} [ownerOnly] - Whether only the configured bot owner can use the command
  * @property {function(): string} [helpFunction] - Custom help text for the command
  * @property {function(import('discord.js').Message, string[])} [execute] - The callback to be executed when the command is invoked via message
  * @property {require('discord.js').SlashCommandBuilder} [slashCommand] - The slash command builder for registering the command

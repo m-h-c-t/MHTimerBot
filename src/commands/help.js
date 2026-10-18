@@ -7,6 +7,7 @@ import { Logger } from '../modules/logger.js';
 import { checkPerms } from '../modules/security.js';
 
 function canUseCommand(command, user, client) {
+    if (command.ownerOnly && user.id !== client.settings.owner) return false;
     if (!command.minPerm) return true;
     if (user.id === client.settings.owner) return true;
     return checkPerms(user.member ?? user, command.minPerm);
@@ -20,6 +21,7 @@ function getHelpMessage(commands, user, client, tokens, prefix, isSlash = false)
                 name: command.name,
                 description: command.description,
                 aliases: command.aliases ?? [],
+                ownerOnly: command.ownerOnly,
                 usage: command.usage,
                 helpFunction: command.helpFunction,
             }]),

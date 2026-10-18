@@ -23,6 +23,7 @@ Next big push is make things into slash commands.
 * minluck \<mouse\> - Displays a mouse's minluck values
   -minluck Ful'mina OR -minluck ful
 * config / `/config` - Bot and server owner, mostly. Allows server admins to view or change roles, prefixes, timer channels, and emoji settings
+* shutdown / `/shutdown` - Gracefully saves data and shuts down the bot; owner only
 
 Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries, except `/config`, which returns all configured values.
 

@@ -2,7 +2,7 @@
  * MHTimer Bot
  */
 // Import required modules
-import { DateTime, Duration, Interval } from 'luxon';
+import { DateTime, Duration } from 'luxon';
 import Discord from 'discord.js';
 import fs from 'fs';
 
@@ -138,9 +138,6 @@ function Main() {
             }
             // Settings loaded successfully, so initiate loading of other resources.
             const saveInterval = refresh_rate.as('milliseconds');
-
-            // Schedule the daily Relic Hunter reset. Reset cancelled by issue 152
-            // rescheduleResetRH();
 
             // Create timers list from the timers file.
             const hasTimers = loadTimers()
@@ -361,6 +358,7 @@ function quit() {
             process.exit(1);
         });
 }
+client.shutdown = quit;
 
 /**
  * Any object which stores user-entered data should be periodically saved, or at minimum saved before
@@ -686,41 +684,7 @@ function parseUserMessage(message) {
     else
     {
         switch (command) {
-
-            case 'shutdown': {
-                if (message.author.id === settings.owner) {
-                    message.channel.send('So long, and thanks for all the fish.')
-                        .then(() => quit()); // Quit will _always_ terminate.
-                }
-                break;
-            }
-            case 'save': {
-                if (message.author.id === settings.owner) {
-                    message.channel.send('Asynchronous save started')
-                        .then(() => doSaveAll())
-                        .then(didSaveAll => message.channel.send(`Save complete: ${didSaveAll ? 'success': 'failure'}`));
-                }
-                break;
-            }
-            case 'reset':
-                if (message.author.id === settings.owner) {
-                    if (!tokens.length) {
-                        message.channel.send('I don\'t know what to reset.');
-                    }
-                    const sub_command = tokens.shift();
-                    switch (sub_command) {
-                        case 'timers':
-                            // TODO: re-add deactivated channels to active channels for each timer.
-                            break;
-
-                        case 'rh':
-                        case 'relic_hunter':
-                        default:
-                            resetRH();
-                    }
-                    break;
-                }
-            // Fall through if user isn't the bot owner.
+            // This was longer before Discord moved us to slash commands, this remains for self-hosted bots that have message intents
             case 'arrg':
             case 'aarg':
                 Promise.resolve(client.commands.get('help').execute(message, tokens))
@@ -1025,31 +989,6 @@ function getNicknames(type) {
         client.nicknames.set(type, newData);
         parser.end(() => Logger.log(`Nicknames: ${Object.keys(newData).length} of type '${type}' loaded.`));
     }).catch(err => Logger.error(`Nicknames: request for type '${type}' failed with error:`, err));
-}
-
-/**
- * Reset the Relic Hunter location so reminders know to update people
- */
-function resetRH() {
-    Logger.log(`Relic hunter: resetting location to "unknown", was ${relic_hunter.source}: ${relic_hunter.location}`);
-    relic_hunter.location = 'unknown';
-    relic_hunter.source = 'reset';
-    relic_hunter.last_seen = DateTime.fromMillis(0);
-    // Schedule the next reset.
-    rescheduleResetRH();
-}
-
-/**
- * Continue resetting Relic Hunter location
- */
-function rescheduleResetRH() {
-    return; // Rescheduled reset cancelled by issue 152
-    // eslint-disable-next-line no-unreachable
-    if (relic_hunter.timeout)
-        clearTimeout(relic_hunter.timeout);
-
-    const now = DateTime.utc();
-    relic_hunter.timeout = setTimeout(resetRH, Interval.fromDateTimes(now, now.endOf('day')).length('milliseconds'));
 }
 
 /**
