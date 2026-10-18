@@ -526,7 +526,7 @@ async function formatConvertibles(isDM, convertible, opts) {
     if (total_gold_value > 0) {
         reply += `Gold value of tradeable items per open: ${intToHuman(
             total_gold_value,
-        )} (~${total_sb_value.toPrecision(3)} SB). `;
+        )} (~${intToHuman(total_sb_value)} SB). `;
     }
     reply += `HTML version at: ${target_url}`;
 
