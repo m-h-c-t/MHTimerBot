@@ -21,9 +21,11 @@ Next big push is make things into slash commands.
   -whatsin arduous
 * minluck \<mouse\> - Displays a mouse's minluck values
   -minluck Ful'mina OR -minluck ful
-* config - Bot and server owner, mostly. Allows for some server-level configurations such as who can run that command
+* config / `/config` - Bot and server owner, mostly. Allows server admins to view or change roles, prefixes, timer channels, and emoji settings
 
-Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries.
+Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries, except `/config`, which returns all configured values.
+
+`/config` provides `view`, `adminrole`, `modrole`, `prefix`, `timers`, `timers-add`, `timers-remove`, `emoji`, `emoji-get`, `emoji-set`, and `emoji-remove` subcommands. Each supports the optional `public` response setting.
 
 ## To use with your own discord server
 

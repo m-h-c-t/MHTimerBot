@@ -4,6 +4,7 @@ import { ApplicationCommandOptionType, MessageFlags } from 'discord.js';
 
 import { command as findMouse } from '../../src/commands/find.js';
 import { command as findLoot } from '../../src/commands/ifind.js';
+import { command as config } from '../../src/commands/config.js';
 import { command as minluck } from '../../src/commands/minluck.js';
 import { command as next } from '../../src/commands/next.js';
 import { command as price } from '../../src/commands/price.js';
@@ -12,11 +13,13 @@ import { command as schedule } from '../../src/commands/schedule.js';
 import { command as whatsin } from '../../src/commands/whatsin.js';
 
 test('slash commands - all commands have optional public response option', suite => {
-    const commands = [findMouse, findLoot, minluck, next, price, remind, schedule, whatsin];
+    const commands = [config, findMouse, findLoot, minluck, next, price, remind, schedule, whatsin];
     suite.plan(commands.length * 2);
 
     for (const command of commands) {
-        const publicOption = command.slashCommand.toJSON().options.find(option => option.name === 'public');
+        const options = command.slashCommand.toJSON().options;
+        const publicOption = options.find(option => option.name === 'public')
+            ?? options.flatMap(option => option.options ?? []).find(option => option.name === 'public');
         suite.ok(publicOption, `${command.name} has a public option`);
         suite.equal(publicOption.type, ApplicationCommandOptionType.Boolean, `${command.name} public option is boolean`);
     }
