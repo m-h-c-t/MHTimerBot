@@ -148,7 +148,10 @@ async function autotype(interaction) {
  */
 async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const isPublic = interaction.options.getBoolean('public') ?? false;
+        await interaction.deferReply({
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
         const search_string = interaction.options.getString('mouse');
         if (isRelicHunterSearch(search_string)) {
             if (typeof interaction.client.findRelicHunter !== 'function') {
@@ -163,7 +166,7 @@ async function interact(interaction) {
         // let results = 'Somehow you did not search for a mouse'; // also happens when no matching mouse
         if (all_mice && all_mice.length) {
             const mouse = all_mice[0];
-            const results = await formatMice(true, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
+            const results = await formatMice(!isPublic, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
             // Here we need to split the results into chunks. The button goes on the last chunk?
             const result_pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
             await interactionDisplayPage(interaction, result_pages, 0);
@@ -178,6 +181,7 @@ async function interact(interaction) {
 
 async function interactionDisplayPage(interaction, pages, current_page) {
     if (interaction.id && interaction.isChatInputCommand() && pages.length) {
+        const isPublic = interaction.options.getBoolean('public') ?? false;
         current_page = current_page || 0;
         // Build buttons
         let buttons = new ActionRowBuilder();
@@ -229,7 +233,11 @@ async function interactionDisplayPage(interaction, pages, current_page) {
         if (current_page === 0) {
             await interaction.editReply({ content: pages[current_page], components: [ buttons ] });
         } else {
-            await interaction.followUp({ content: pages[current_page], flags: MessageFlags.Ephemeral, components: [ buttons ] });
+            await interaction.followUp({
+                content: pages[current_page],
+                flags: isPublic ? undefined : MessageFlags.Ephemeral,
+                components: [ buttons ],
+            });
         }
     }
 }
@@ -247,7 +255,11 @@ const slashCommand = new SlashCommandBuilder()
         option.setName('filter')
             .setDescription('The specific power type to look up (Default: all)')
             .setRequired(false)
-            .setAutocomplete(true));
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
 
 export const command = {
     name: 'find-mouse',

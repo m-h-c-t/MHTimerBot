@@ -114,7 +114,10 @@ async function autotype(interaction) {
 async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    await interaction.deferReply({
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
     const searchString = interaction.options.getString('loot');
     const allLoot = getLoot(searchString, interaction.client.nicknames.get('loot'));
     if (!allLoot || !allLoot.length) {
@@ -123,13 +126,16 @@ async function interact(interaction) {
     }
 
     const requestedFilter = interaction.options.getString('filter');
-    const results = await formatLoot(true, allLoot[0], {
+    const results = await formatLoot(!isPublic, allLoot[0], {
         timefilter: getFilter(requestedFilter)?.code_name || 'all_time',
     });
     const pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
     await interaction.editReply({ content: pages[0] });
     for (const page of pages.slice(1)) {
-        await interaction.followUp({ content: page, flags: MessageFlags.Ephemeral });
+        await interaction.followUp({
+            content: page,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
     }
 }
 
@@ -145,7 +151,11 @@ const slashCommand = new SlashCommandBuilder()
         option.setName('filter')
             .setDescription('The event period to look up (Default: all time)')
             .setRequired(false)
-            .setAutocomplete(true));
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
 
 // Initialize and save are in find.js.
 export const command = {

@@ -92,7 +92,7 @@ async function doMINLUCK(message, tokens) {
  *
  * @returns {String} -- Minluck result as a string
  */
-function getMinLuck(message, mouse, flags) {
+function getMinLuck(message, mouse, flags, shortenFlags = false) {
     if (!mouse || mouse === '') {
         return 'Looks like you forgot what you were searching for';
     }
@@ -116,9 +116,9 @@ function getMinLuck(message, mouse, flags) {
             && message['guildId']
             && message['guildId'] in message.client.settings.guilds
             && 'emoji' in message.client.settings.guilds[message.guildId]) {
-            reply += getMinluckString(all_mice[0].value, types, false, message.client.settings.guilds[message.guild.id].emoji);
+            reply += getMinluckString(all_mice[0].value, types, shortenFlags, message.client.settings.guilds[message.guild.id].emoji);
         } else {
-            reply += getMinluckString(all_mice[0].value, types, false);
+            reply += getMinluckString(all_mice[0].value, types, shortenFlags);
         }
     } else {
         reply = `I did not find ${mouse}`;
@@ -132,6 +132,7 @@ function getMinLuck(message, mouse, flags) {
  */
 async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
+        const isPublic = interaction.options.getBoolean('public') ?? false;
         const filter = f => f.customId === interaction.id && f.user.id === interaction.user.id;
         const shareButton = new ActionRowBuilder()
             .addComponents(
@@ -140,7 +141,12 @@ async function interact(interaction) {
                     .setLabel('Send to Channel')
                     .setStyle(ButtonStyle.Primary),
             );
-        const results = getMinLuck(interaction, interaction.options.getString('mouse'), interaction.options.getString('powertype'));
+        const results = getMinLuck(
+            interaction,
+            interaction.options.getString('mouse'),
+            interaction.options.getString('powertype'),
+            isPublic,
+        );
         const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
         collector.on('collect', async c => {
             const sharer = interaction.user;
@@ -152,7 +158,11 @@ async function interact(interaction) {
         collector.on('end', async () => {
             await interaction.editReply({ content: results, components: [] });
         });
-        await interaction.reply({ content: results, flags: MessageFlags.Ephemeral, components: [ shareButton ] });
+        await interaction.reply({
+            content: results,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+            components: [ shareButton ],
+        });
     } else {
         Logger.error('Somehow minluck command interaction was called without a command');
     }
@@ -199,7 +209,11 @@ const slashCommand = new SlashCommandBuilder()
                 { name: 'Shadow', value: 's' },
                 { name: 'Tactical', value: 't' },
                 { name: 'Rift', value: 'r' },
-            ));
+            ))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (at most 10 result lines)')
+            .setRequired(false));
 
 export const command = {
     name: 'minluck',

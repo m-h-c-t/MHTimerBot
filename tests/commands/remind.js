@@ -6,14 +6,15 @@ import { command } from '../../src/commands/remind.js';
 
 test('commands - remind slash command registration', suite => {
     const slashCommand = command.slashCommand.toJSON();
-    suite.plan(6);
+    suite.plan(7);
 
     suite.is(slashCommand.name, 'remind', 'registers as /remind');
-    suite.equal(slashCommand.options.length, 3, 'has area, sub-area, and count options');
+    suite.equal(slashCommand.options.length, 4, 'has area, sub-area, count, and public options');
     suite.is(slashCommand.options[0].name, 'area', 'supports an area option');
     suite.true(slashCommand.options[0].autocomplete, 'supports area autocomplete');
     suite.is(slashCommand.options[1].name, 'sub-area', 'supports a sub-area option');
     suite.equal(slashCommand.options[2].name, 'count', 'supports a repeat count');
+    suite.equal(slashCommand.options[3].name, 'public', 'offers a public response option');
 });
 
 test('commands - remind slash command sets reminder count', async suite => {
@@ -74,6 +75,24 @@ test('commands - remind slash reminder list shows slash-compatible stop syntax',
     suite.false(response.includes('slash commands'), 'does not display invalid placeholder syntax');
 });
 
+test('commands - public reminder list shows at most ten entries', async suite => {
+    const client = mockClient();
+    client.reminders = Array.from({ length: 12 }, (_, index) => ({
+        count: 1,
+        area: `area-${index}`,
+        user: 'user-id',
+    }));
+    const interaction = mockInteraction(client, { public: true });
+    suite.plan(3);
+
+    await command.interactionHandler(interaction);
+
+    const response = interaction.reply.firstCall.args[0];
+    suite.notOk(response.flags, 'does not make a public response ephemeral');
+    suite.equal((response.content.match(/Timer:/g) || []).length, 10, 'includes at most ten reminder entries');
+    suite.true(response.content.includes('first 10 of 12 reminders'), 'explains that the list was limited');
+});
+
 test('commands - remind autocomplete suggests area and sub-area names', async suite => {
     const respond = sinon.stub().resolves();
     const interaction = {
@@ -120,6 +139,7 @@ function mockInteraction(client, options) {
         options: {
             getString: name => options[name] || null,
             getInteger: name => options[name] ?? null,
+            getBoolean: name => options[name] ?? false,
         },
         user: { id: 'user-id', username: 'user', tag: 'user#0000' },
         client,

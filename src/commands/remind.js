@@ -160,10 +160,17 @@ async function interact(interaction) {
     const area = interaction.options.getString('area');
     const subArea = interaction.options.getString('sub-area');
     const repeatCount = interaction.options.getInteger('count');
+    const isPublic = interaction.options.getBoolean('public') ?? false;
     if (!area && !subArea) {
         await interaction.reply({
-            content: listRemind(interaction.user.id, interaction.client.reminders, '', true),
-            flags: MessageFlags.Ephemeral,
+            content: listRemind(
+                interaction.user.id,
+                interaction.client.reminders,
+                '',
+                true,
+                isPublic ? 10 : undefined,
+            ),
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
         });
         return;
     }
@@ -177,7 +184,10 @@ async function interact(interaction) {
         interaction.user.username,
         timerRequest,
     );
-    await interaction.reply({ content: text, flags: MessageFlags.Ephemeral });
+    await interaction.reply({
+        content: text,
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
 }
 
 const slashCommand = new SlashCommandBuilder()
@@ -197,7 +207,11 @@ const slashCommand = new SlashCommandBuilder()
         option.setName('count')
             .setDescription('Times to remind (default: 1, 0 stops, -1 repeats indefinitely)')
             .setRequired(false)
-            .setMinValue(-1));
+            .setMinValue(-1))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (reminder lists limited to 10)')
+            .setRequired(false));
 
 /**
  * Helper method to DM a user some preformatted text.

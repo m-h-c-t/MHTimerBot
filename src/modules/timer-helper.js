@@ -376,11 +376,12 @@ function nextTimer(timers_list, validTimerData, botPrefix) {
  * @param {string} botPrefix The bot prefix for the channel in use
  * @param {boolean} [slashSyntax] Whether to format usage examples as slash commands
  */
-function listRemind(user, reminders, botPrefix, slashSyntax = false) {
+function listRemind(user, reminders, botPrefix, slashSyntax = false, maxEntries = Infinity) {
     let timer_str = 'Your reminders:';
     let usage_str;
 
-    const userReminders = reminders.filter(r => r.user === user && r.count);
+    const allUserReminders = reminders.filter(r => r.user === user && r.count);
+    const userReminders = allUserReminders.slice(0, maxEntries);
     userReminders.forEach(reminder => {
         // TODO: prettyPrint this info.
         const name = `${reminder.area}${reminder.sub_area ? ` (${reminder.sub_area})` : ''}`;
@@ -402,6 +403,8 @@ function listRemind(user, reminders, botPrefix, slashSyntax = false) {
         if (reminder.fail)
             timer_str += `There have been ${reminder.fail} failed attempts to activate this reminder.\n`;
     });
+    if (allUserReminders.length > userReminders.length)
+        timer_str += `\nShowing the first ${userReminders.length} of ${allUserReminders.length} reminders.`;
     return userReminders.length ? timer_str : 'I found no reminders for you, sorry.';
 }
 

@@ -23,6 +23,8 @@ Next big push is make things into slash commands.
   -minluck Ful'mina OR -minluck ful
 * config - Bot and server owner, mostly. Allows for some server-level configurations such as who can run that command
 
+Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries.
+
 ## To use with your own discord server
 
 Note: If you just want to use existing bot on your own discord server, ask Aardwolf if you can join our bot testing. Otherwise, these instructions are to host your own copy of the bot, so you can help us develop and customize it.

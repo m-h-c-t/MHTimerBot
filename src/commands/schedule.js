@@ -62,7 +62,7 @@ async function doSCHED(message, tokens) {
     return theResult;
 }
 
-function getScheduleReply(timers, timerRequest) {
+function getScheduleReply(timers, timerRequest, maxTimers = 24) {
     // Default the searched time period to 24 hours if it was not specified.
     timerRequest.count = timerRequest.count || 24;
 
@@ -77,7 +77,6 @@ function getScheduleReply(timers, timerRequest) {
     const until = DateTime.utc().plus(reqHours);
     /** @type {{time: DateTime, message: string}[]} */
     const upcomingTimers = [];
-    const maxTimers = 24;
     const areaTimers = timerRequest.area
         ? timers.filter(timer => timer.getArea() === timerRequest.area
             && (!timerRequest.sub_area || timer.getSubArea() === timerRequest.sub_area)
@@ -143,23 +142,31 @@ async function autotype(interaction) {
 async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
+    const isPublic = interaction.options.getBoolean('public') ?? false;
     const tokens = [
         interaction.options.getString('area'),
         interaction.options.getString('sub-area'),
         interaction.options.getInteger('hours')?.toString(),
     ].filter(Boolean);
     const timerRequest = timerAliases(interaction.client.timers_list, tokens);
-    const { reply, isValid } = getScheduleReply(interaction.client.timers_list, timerRequest);
+    const { reply, isValid } = getScheduleReply(
+        interaction.client.timers_list,
+        timerRequest,
+        isPublic ? 10 : 24,
+    );
     if (!isValid) {
         await interaction.reply({
             content: 'Invalid timespan given - how many hours did you want to look ahead?',
-            flags: MessageFlags.Ephemeral,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
         });
         return;
     }
 
     const pages = splitMessageRegex(reply);
-    await interaction.reply({ content: pages[0] });
+    await interaction.reply({
+        content: pages[0],
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
     for (const page of pages.slice(1)) {
         await interaction.followUp({ content: page });
     }
@@ -183,7 +190,11 @@ const slashCommand = new SlashCommandBuilder()
             .setDescription('How many hours ahead to look (default: 24; maximum: 240)')
             .setRequired(false)
             .setMinValue(1)
-            .setMaxValue(240));
+            .setMaxValue(240))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 timer results)')
+            .setRequired(false));
 
 export const command = {
     name: 'schedule',

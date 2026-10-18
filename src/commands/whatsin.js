@@ -86,7 +86,10 @@ async function autotype(interaction) {
 async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    await interaction.deferReply({
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
     const searchString = interaction.options.getString('convertible');
     const convertibles = getConvertibles(searchString);
     if (!convertibles || !convertibles.length) {
@@ -96,7 +99,7 @@ async function interact(interaction) {
         return;
     }
 
-    const results = await formatConvertibles(true, convertibles[0], {});
+    const results = await formatConvertibles(!isPublic, convertibles[0], {});
     const pages = splitMessageRegex(results, {
         maxLength: 1800,
         prepend: '```\n',
@@ -104,7 +107,10 @@ async function interact(interaction) {
     });
     await interaction.editReply({ content: pages[0] });
     for (const page of pages.slice(1)) {
-        await interaction.followUp({ content: page, flags: MessageFlags.Ephemeral });
+        await interaction.followUp({
+            content: page,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
     }
 }
 
@@ -115,7 +121,11 @@ const slashCommand = new SlashCommandBuilder()
         option.setName('convertible')
             .setDescription('The convertible to look up')
             .setRequired(true)
-            .setAutocomplete(true));
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
 
 export const command = {
     name: 'whatsin',
