@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
@@ -114,7 +114,7 @@ async function autotype(interaction) {
 async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const searchString = interaction.options.getString('loot');
     const allLoot = getLoot(searchString, interaction.client.nicknames.get('loot'));
     if (!allLoot || !allLoot.length) {
@@ -129,7 +129,7 @@ async function interact(interaction) {
     const pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
     await interaction.editReply({ content: pages[0] });
     for (const page of pages.slice(1)) {
-        await interaction.followUp({ content: page, ephemeral: true });
+        await interaction.followUp({ content: page, flags: MessageFlags.Ephemeral });
     }
 }
 

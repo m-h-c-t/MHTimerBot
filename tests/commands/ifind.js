@@ -1,5 +1,6 @@
 import test from 'tape';
 import sinon from 'sinon';
+import { MessageFlags } from 'discord.js';
 
 import { command } from '../../src/commands/ifind.js';
 
@@ -35,7 +36,7 @@ test('commands - find-loot responds when no loot matches', async suite => {
     await command.interactionHandler(interaction);
 
     suite.true(interaction.deferReply.calledOnce, 'defers the interaction reply');
-    suite.true(interaction.deferReply.calledWith({ ephemeral: true }), 'keeps the reply private');
+    suite.true(interaction.deferReply.calledWith({ flags: MessageFlags.Ephemeral }), 'keeps the reply private');
     suite.true(interaction.editReply.calledWith({
         content: 'Your search for \'unknown loot\' was not a success...',
     }), 'explains when the search has no matches');

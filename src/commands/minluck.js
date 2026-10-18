@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
@@ -145,14 +145,14 @@ async function interact(interaction) {
         collector.on('collect', async c => {
             const sharer = interaction.user;
             await c.message.channel.send( { content: `<@${sharer.id}> used \`/minluck ${interaction.options.getString('mouse')}\`:\n${results}` });
-            await c.update({ content: 'Shared', ephemeral: false, components: [] });
+            await c.update({ content: 'Shared', components: [] });
 
-            // await interaction.editReply({ content: results, ephemeral: false, components: [] }); // Does not stop it from being ephemeral
+            // Editing the original response does not change its visibility.
         });
         collector.on('end', async () => {
             await interaction.editReply({ content: results, components: [] });
         });
-        await interaction.reply({ content: results, ephemeral: true, components: [ shareButton ] });
+        await interaction.reply({ content: results, flags: MessageFlags.Ephemeral, components: [ shareButton ] });
     } else {
         Logger.error('Somehow minluck command interaction was called without a command');
     }

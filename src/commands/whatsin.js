@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
@@ -86,7 +86,7 @@ async function autotype(interaction) {
 async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     const searchString = interaction.options.getString('convertible');
     const convertibles = getConvertibles(searchString);
     if (!convertibles || !convertibles.length) {
@@ -104,7 +104,7 @@ async function interact(interaction) {
     });
     await interaction.editReply({ content: pages[0] });
     for (const page of pages.slice(1)) {
-        await interaction.followUp({ content: page, ephemeral: true });
+        await interaction.followUp({ content: page, flags: MessageFlags.Ephemeral });
     }
 }
 

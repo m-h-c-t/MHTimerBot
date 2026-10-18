@@ -369,13 +369,14 @@ function nextTimer(timers_list, validTimerData, botPrefix) {
 }
 
 /**
- * List the reminders for the user, and PM them the result.
+ * Format a user's reminders, including the command syntax to turn them off.
  *
  * @param {string} user A Discord Snowflake user id
  * @param {TimerReminder[]} reminders Array of reminders the bot is managing
  * @param {string} botPrefix The bot prefix for the channel in use
+ * @param {boolean} [slashSyntax] Whether to format usage examples as slash commands
  */
-function listRemind(user, reminders, botPrefix) {
+function listRemind(user, reminders, botPrefix, slashSyntax = false) {
     let timer_str = 'Your reminders:';
     let usage_str;
 
@@ -384,9 +385,9 @@ function listRemind(user, reminders, botPrefix) {
         // TODO: prettyPrint this info.
         const name = `${reminder.area}${reminder.sub_area ? ` (${reminder.sub_area})` : ''}`;
         timer_str += `\nTimer:\t**${name}**`;
-        usage_str = `\`${botPrefix} remind ${reminder.area}`;
-        if (reminder.sub_area)
-            usage_str += ` ${reminder.sub_area}`;
+        usage_str = slashSyntax
+            ? `\`/remind area: ${reminder.area}${reminder.sub_area ? ` sub-area: ${reminder.sub_area}` : ''} count: 0\``
+            : `\`${botPrefix} remind ${reminder.area}${reminder.sub_area ? ` ${reminder.sub_area}` : ''} stop\``;
 
         timer_str += '\t';
         if (reminder.count === 1)
@@ -396,7 +397,7 @@ function listRemind(user, reminders, botPrefix) {
         else
             timer_str += ` ${reminder.count} times`;
 
-        timer_str += `.\nTo turn off\t${usage_str} stop\`\n`;
+        timer_str += `.\nTo turn off\t${usage_str}\n`;
 
         if (reminder.fail)
             timer_str += `There have been ${reminder.fail} failed attempts to activate this reminder.\n`;

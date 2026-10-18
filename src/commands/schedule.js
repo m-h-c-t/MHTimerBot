@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { DateTime, Duration } from 'luxon';
 import { CommandResult } from '../interfaces/command-result.js';
@@ -153,7 +153,7 @@ async function interact(interaction) {
     if (!isValid) {
         await interaction.reply({
             content: 'Invalid timespan given - how many hours did you want to look ahead?',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
         });
         return;
     }

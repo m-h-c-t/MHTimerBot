@@ -1,5 +1,6 @@
 import test from 'tape';
 import sinon from 'sinon';
+import { MessageFlags } from 'discord.js';
 
 import { command } from '../../src/commands/whatsin.js';
 
@@ -28,7 +29,7 @@ test('commands - whatsin responds when no convertible matches', async suite => {
     await command.interactionHandler(interaction);
 
     suite.true(interaction.deferReply.calledOnce, 'defers the interaction reply');
-    suite.true(interaction.deferReply.calledWith({ ephemeral: true }), 'keeps the reply private');
+    suite.true(interaction.deferReply.calledWith({ flags: MessageFlags.Ephemeral }), 'keeps the reply private');
     suite.true(interaction.editReply.calledWith({
         content: 'I don\'t know anything about "unknown convertible"',
     }), 'explains when the search has no matches');

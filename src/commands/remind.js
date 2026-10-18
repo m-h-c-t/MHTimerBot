@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Formatters, Message, User } from 'discord.js';
+import { codeBlock, Message, MessageFlags, User, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { oxfordStringifyValues, splitMessageRegex } from '../modules/format-utils.js';
@@ -37,99 +37,167 @@ async function doREMIND(message, tokens) {
         return sendDM(message.author, theResult, listRemind(message.author.id, message.client.reminders, botPrefix));
     }
 
-    const area = timerRequest.area;
-    const subArea = timerRequest.sub_area;
-    if (!area) {
-        return sendDM(message.author, theResult, 'I do not know the area you asked for');
-    }
+    const { text, success } = applyReminderRequest(
+        message.client,
+        message.author.id,
+        message.author.username,
+        timerRequest,
+    );
+    theResult.success = success;
+    return sendDM(message.author, theResult, text);
+}
 
-    // Default to reminding the user once.
+/**
+ * Apply a reminder request and produce its response text.
+ * @param {import('discord.js').Client} client The bot client
+ * @param {string} userId The requesting user's Discord ID
+ * @param {string} username The requesting user's username
+ * @param {object} timerRequest Parsed timer request
+ * @returns {{text: string, success: boolean}}
+ */
+function applyReminderRequest(client, userId, username, timerRequest) {
+    const { area, sub_area: subArea } = timerRequest;
+    if (!area) return { text: 'I do not know the area you asked for', success: false };
+
     const count = timerRequest.count || (timerRequest.count === 0 ? 0 : 1);
     const requestName = `${area}${subArea ? `: ${subArea}` : ''}`;
-
-    // Delete the reminder, if that is being requested.
-    // Rather than try to modify the positions and number of elements in
-    // reminders e.g. thread race saveReminders, simply set the count to 0.
     if (!count) {
         const responses = [];
-        for (const reminder of message.client.reminders) {
-            if (reminder.user === message.author.id && reminder.area === area) {
-                if (subArea && subArea === reminder.sub_area) {
-                    reminder.count = 0;
-                    responses.push(`Reminder for '${requestName}' turned off.`);
-                }
-                else if (!subArea && !reminder.sub_area) {
-                    reminder.count = 0;
-                    responses.push(`Reminder for '${requestName}' turned off.`);
-                }
+        for (const reminder of client.reminders) {
+            if (reminder.user === userId && reminder.area === area
+                && ((subArea && subArea === reminder.sub_area) || (!subArea && !reminder.sub_area))) {
+                reminder.count = 0;
+                responses.push(`Reminder for '${requestName}' turned off.`);
             }
         }
-
-        theResult.success = responses.length > 0;
-        return sendDM(message.author, theResult, responses.length > 0
-            ? Formatters.codeBlock(responses.join('\n'))
-            : `I couldn't find a matching reminder for you in "${requestName}".`);
+        return {
+            success: responses.length > 0,
+            text: responses.length > 0
+                ? codeBlock(responses.join('\n'))
+                : `I couldn't find a matching reminder for you in "${requestName}".`,
+        };
     }
 
-    // User asked to be reminded - find a timer that meets the request, and sort in order of next activation.
-    const choices = message.client.timers_list
-        .filter(t => area === t.getArea() && (!subArea || subArea === t.getSubArea()))
+    const choices = client.timers_list
+        .filter(timer => area === timer.getArea() && (!subArea || subArea === timer.getSubArea()))
         .sort((a, b) => a.getNext() - b.getNext());
-
-    // Assume the desired timer is the one that matched the given criteria and occurs next.
     const [timer] = choices;
     if (!timer) {
-        return sendDM(`I'm sorry, there weren't any timers I know of that match your request. I know\n${getKnownTimersDetails()}`, message.author, theResult);
+        return {
+            success: false,
+            text: `I'm sorry, there weren't any timers I know of that match your request. I know\n${getKnownTimersDetails(client.timers_list)}`,
+        };
     }
 
-    // If the reminder already exists, set its new count to the requested count.
     const responses = [];
-    for (const reminder of message.client.reminders)
-        if (reminder.user === message.author.id && reminder.area === area)
-            if ((subArea && reminder.sub_area === subArea)
-                || (!subArea && !reminder.sub_area))
-            {
-                responses.push(`Updated reminder count for '${requestName}' from '${reminder.count === -1
-                    ? 'always' : reminder.count}' to '${count === -1 ? 'always' : count}'.`);
-                reminder.count = count;
-            }
-
+    for (const reminder of client.reminders) {
+        if (reminder.user === userId && reminder.area === area
+            && ((subArea && reminder.sub_area === subArea) || (!subArea && !reminder.sub_area))) {
+            responses.push(`Updated reminder count for '${requestName}' from '${reminder.count === -1
+                ? 'always' : reminder.count}' to '${count === -1 ? 'always' : count}'.`);
+            reminder.count = count;
+        }
+    }
     if (responses.length) {
-        Logger.log(`REMIND: updated ${responses.length} for ${message.author.username} to a count of ${count}.`, timerRequest);
-        theResult.success = true;
-        return sendDM(message.author, theResult, Formatters.codeBlock(responses.join('\n')));
+        Logger.log(`REMIND: updated ${responses.length} for ${username} to a count of ${count}.`, timerRequest);
+        return { text: codeBlock(responses.join('\n')), success: true };
     }
 
-    // No updates were made - free to add a new reminder.
-    /** @type {TimerReminder} */
-    const newReminder = { count, area, user: message.author.id };
+    /** @type {{count: number, area: string, user: string, sub_area?: string}} */
+    const newReminder = { count, area, user: userId };
+    if (timer.getSubArea()) newReminder.sub_area = subArea;
+    client.reminders.push(newReminder);
 
-    // If the matched timer has a sub-area, we need to care about the sub-area specified
-    // in the request. It will either be the same as that of this timer, or it will be
-    // null / undefined (i.e. a request for reminders from all timers in the area).
-    if (timer.getSubArea())
-        newReminder.sub_area = subArea;
-    message.client.reminders.push(newReminder);
-
-    // If the user entered a generic reminder, they may not expect the specific name. Generic reminder
-    // requests will have matched more than one timer, so we can reference 'choices' to determine the
-    // proper response.
     const isGenericRequest = !subArea && timer.getSubArea();
-    const subAreas = new Set(choices.map(t => `**${t.getSubArea()}**`));
+    const subAreas = new Set(choices.map(choice => `**${choice.getSubArea()}**`));
     responses.push(`Your reminder for **${isGenericRequest ? area : timer.name}** is set. ${choices.length > 1
         ? `You'll get reminders for ${oxfordStringifyValues(subAreas)}. I'll PM you about them`
         : 'I\'ll PM you about it'}`);
     responses.push((count === 1) ? 'once.' : (count < 0) ? 'until you stop it.' : `${count} times.`);
-
-    // TODO: I don't think this "new user" block will get triggered any more since we added `newReminder` already.
-    // Inform a new user of the reminder functionality (i.e. PM only).
-    if (!message.channel.isDMBased() && !message.client.reminders.some(r => r.user === message.author.id))
+    if (!client.reminders.some(reminder => reminder.user === userId))
         responses.unshift('Hi there! Reminders are only sent via PM, and I\'m just making sure I can PM you.');
-
-    // Send notice of the update via PM.
-    theResult.success = true;
-    return sendDM(message.author, theResult, responses.join(' '));
+    return { text: responses.join(' '), success: true };
 }
+
+/**
+ * Reply to autocomplete requests with timer areas and sub-areas.
+ * @param {CommandInteraction} interaction Must be an autocomplete interaction
+ */
+async function autotype(interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const focusedOption = interaction.options.getFocused(true);
+    const timers = interaction.client.timers_list;
+    let values;
+    if (focusedOption.name === 'area') {
+        values = [...new Set(timers.map(timer => timer.getArea()))];
+    } else if (focusedOption.name === 'sub-area') {
+        const area = interaction.options.getString('area');
+        values = [...new Set(timers
+            .filter(timer => !area || timer.getArea() === area)
+            .map(timer => timer.getSubArea())
+            .filter(Boolean))];
+    } else {
+        return;
+    }
+
+    const search = focusedOption.value.toLowerCase();
+    await interaction.respond(
+        values
+            .filter(value => value.toLowerCase().includes(search))
+            .slice(0, 25)
+            .map(value => ({ name: value, value })),
+    );
+}
+
+/**
+ * Handle a slash reminder request.
+ * @param {CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const area = interaction.options.getString('area');
+    const subArea = interaction.options.getString('sub-area');
+    const repeatCount = interaction.options.getInteger('count');
+    if (!area && !subArea) {
+        await interaction.reply({
+            content: listRemind(interaction.user.id, interaction.client.reminders, '', true),
+            flags: MessageFlags.Ephemeral,
+        });
+        return;
+    }
+
+    const tokens = [area, subArea, repeatCount == null ? null : `${repeatCount}`].filter(Boolean);
+    const timerRequest = timerAliases(interaction.client.timers_list, tokens);
+    if (repeatCount != null) timerRequest.count = repeatCount;
+    const { text } = applyReminderRequest(
+        interaction.client,
+        interaction.user.id,
+        interaction.user.username,
+        timerRequest,
+    );
+    await interaction.reply({ content: text, flags: MessageFlags.Ephemeral });
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('remind')
+    .setDescription('Set, stop, or list your timer reminders')
+    .addStringOption(option =>
+        option.setName('area')
+            .setDescription('Timer area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addStringOption(option =>
+        option.setName('sub-area')
+            .setDescription('Specific timer in the area')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addIntegerOption(option =>
+        option.setName('count')
+            .setDescription('Times to remind (default: 1, 0 stops, -1 repeats indefinitely)')
+            .setRequired(false)
+            .setMinValue(-1));
 
 /**
  * Helper method to DM a user some preformatted text.
@@ -158,4 +226,7 @@ export const command = {
     description: 'Set and retrieve reminders for MouseHunt Timers',
     canDM: true,
     execute: doREMIND,
+    slashCommand,
+    autocompleteHandler: autotype,
+    interactionHandler: interact,
 };

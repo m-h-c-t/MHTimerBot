@@ -8,7 +8,7 @@ Next big push is make things into slash commands.
 
 * next \<area\> - displays how long until the next timer of that type and what the display message would be
   -next spill: The levels will rise to Arch in 2h31m
-* remind \<area\> [sub-area] [always|once|stop|<num>] - Sends a PM to remind of ANY timer for an area
+* remind \<area\> [sub-area] [always|once|stop|<num>] / `/remind` - Sets, stops, or lists timer reminders (slash `count`: 1 by default, 0 to stop, -1 for always)
   -remind season once - Will only remind the next time the timer goes
   -remind season winter once - Will only remind the next time the timer goes
 * schedule \<area\> [\<number\>] / `/schedule` - Shows upcoming timers; slash options filter by area, sub-area, and hours

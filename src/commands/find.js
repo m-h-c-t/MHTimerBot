@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
@@ -149,7 +149,7 @@ async function autotype(interaction) {
  */
 async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         const search_string = interaction.options.getString('mouse');
         if (isRelicHunterSearch(search_string)) {
             if (typeof interaction.client.findRelicHunter !== 'function') {
@@ -170,7 +170,7 @@ async function interact(interaction) {
             await interactionDisplayPage(interaction, result_pages, 0);
         } else {
             // TODO: Figure out how to see what was provided when it didn't match a mouse...
-            await interaction.editReply({ content: `Your search for '${search_string}' was not a success...`, ephemeral: true });
+            await interaction.editReply({ content: `Your search for '${search_string}' was not a success...` });
         }
     } else {
         Logger.error('Somehow find-mouse command interaction was called without a mouse');
@@ -206,10 +206,10 @@ async function interactionDisplayPage(interaction, pages, current_page) {
                 if (allow_share) {
                     // TODO: Probably better to calculate X lines of attractions for sharing
                     await c.message.channel.send({ content: `<@${sharer.id}> used \`/find-mouse ${interaction.options.getString('mouse')}\`:\n${pages[current_page]}` });
-                    await c.update({ content: 'Shared', ephemeral: true, components: [ buttons ] })
+                    await c.update({ content: 'Shared', components: [ buttons ] })
                         .catch((error) => Logger.error(error));
                 } else {
-                    await c.reply( { content: 'Sorry, share is turned off right now', ephemeral: true } );
+                    await c.reply({ content: 'Sorry, share is turned off right now', flags: MessageFlags.Ephemeral });
                 }
             }
             else if (c.customId === `fmmore_${interaction.id}_${current_page}`) {
@@ -228,9 +228,9 @@ async function interactionDisplayPage(interaction, pages, current_page) {
         });
         // Send message
         if (current_page === 0) {
-            await interaction.editReply({ content: pages[current_page], ephemeral: true, components: [ buttons ] });
+            await interaction.editReply({ content: pages[current_page], components: [ buttons ] });
         } else {
-            await interaction.followUp({ content: pages[current_page], ephemeral: true, components: [ buttons ] });
+            await interaction.followUp({ content: pages[current_page], flags: MessageFlags.Ephemeral, components: [ buttons ] });
         }
     }
 }
