@@ -36,29 +36,47 @@ async function doFIND(message, userArgs) {
             tokens.pop();
         }
         const searchString = tokens.join(' ').toLowerCase();
-        const all_mice = getMice(searchString, message.client.nicknames.get('mice'));
-        if (all_mice && all_mice.length) {
-            // We have multiple options, show the interactive menu.
-            urlInfo.qsParams = opts;
-            sendInteractiveSearchResult(all_mice, message.channel, formatMice,
-                message.channel.isDMBased(), urlInfo, searchString);
-            theResult.replied = true;
-            theResult.success = true;
-            theResult.sentDM = message.channel.isDMBased();
+        if (isRelicHunterSearch(searchString)) {
+            if (typeof message.client.findRelicHunter !== 'function') {
+                Logger.error('FIND: Relic Hunter lookup is unavailable');
+                theResult.botError = true;
+                return theResult;
+            }
+            try {
+                await message.channel.send(await message.client.findRelicHunter());
+                theResult.replied = true;
+                theResult.success = true;
+                theResult.sentDM = message.channel.isDMBased();
+            } catch (err) {
+                Logger.error('FIND: failed to find the Relic Hunter', err);
+                theResult.botError = true;
+            }
+            return theResult;
         } else {
-            const all_loot = getLoot(searchString, message.client.nicknames.get('loot'));
-            if (all_loot && all_loot.length) {
+            const all_mice = getMice(searchString, message.client.nicknames.get('mice'));
+            if (all_mice && all_mice.length) {
                 // We have multiple options, show the interactive menu.
                 urlInfo.qsParams = opts;
-                urlInfo.type = 'item';
-                urlInfo.uri = 'https://www.mhct.win/loot.php';
-                sendInteractiveSearchResult(all_loot, message.channel, formatLoot,
+                sendInteractiveSearchResult(all_mice, message.channel, formatMice,
                     message.channel.isDMBased(), urlInfo, searchString);
                 theResult.replied = true;
                 theResult.success = true;
                 theResult.sentDM = message.channel.isDMBased();
             } else {
-                reply = `I don't know anything about "${searchString}"`;
+                const all_loot = getLoot(searchString, message.client.nicknames.get('loot'));
+                if (all_loot && all_loot.length) {
+                    // We have multiple options, show the interactive menu.
+                    urlInfo.qsParams = opts;
+                    urlInfo.type = 'item';
+                    urlInfo.uri = 'https://www.mhct.win/loot.php';
+                    sendInteractiveSearchResult(all_loot, message.channel, formatLoot,
+                        message.channel.isDMBased(), urlInfo, searchString);
+                    theResult.replied = true;
+                    theResult.success = true;
+                    theResult.sentDM = message.channel.isDMBased();
+                } else {
+                    reply = `I don't know anything about "${searchString}"`;
+                }
             }
         }
     }
@@ -79,6 +97,14 @@ async function doFIND(message, userArgs) {
     return theResult;
 }
 
+function isRelicHunterSearch(searchString) {
+    const tokens = searchString.trim().toLowerCase().split(/\s+/);
+    if (tokens[tokens.length - 1] === 'mouse') {
+        tokens.pop();
+    }
+    return ['rh', 'relic_hunter', 'relic hunter'].includes(tokens.join(' '));
+}
+
 function helpFind() {
     let reply = '-mh find [filter] mouse:\nFind the attraction rates for a mouse (nicknames allowed, filters optional).\n';
     reply += 'Known filters: `current`, ' + listFilters();
@@ -94,10 +120,15 @@ async function autotype(interaction) {
         const focusedOption = interaction.options.getFocused(true);
         // let choices = [];
         if (focusedOption.name === 'mouse') {
-            const choices = getMice(focusedOption.value, interaction.client.nicknames.get('mice'));
-            if (choices) {
+            const searchString = focusedOption.value.trim().toLowerCase();
+            const choices = getMice(focusedOption.value, interaction.client.nicknames.get('mice')) || [];
+            if (searchString && ['rh', 'relic hunter', 'relic_hunter'].some(alias =>
+                alias.startsWith(searchString) || searchString.startsWith(alias))) {
+                choices.push({ value: 'relic hunter' });
+            }
+            if (choices.length) {
                 await interaction.respond(
-                    choices.map(mouse => ({ name: mouse.value, value: mouse.value })),
+                    choices.slice(0, 25).map(mouse => ({ name: mouse.value, value: mouse.value })),
                 );
             }
         }
@@ -120,6 +151,15 @@ async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
         await interaction.deferReply({ ephemeral: true });
         const search_string = interaction.options.getString('mouse');
+        if (isRelicHunterSearch(search_string)) {
+            if (typeof interaction.client.findRelicHunter !== 'function') {
+                Logger.error('FIND-MOUSE: Relic Hunter lookup is unavailable');
+                await interaction.editReply({ content: 'The Relic Hunter lookup is unavailable.' });
+                return;
+            }
+            await interaction.editReply({ content: await interaction.client.findRelicHunter() });
+            return;
+        }
         const all_mice = getMice(search_string);
         // let results = 'Somehow you did not search for a mouse'; // also happens when no matching mouse
         if (all_mice && all_mice.length) {

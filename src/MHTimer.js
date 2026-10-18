@@ -625,21 +625,7 @@ function parseUserMessage(message) {
     if (tokens[0] === botPrefix)
         tokens.shift();
 
-    /**
-     * Detect the command based on the first few tokens, allowing some shortcuts and also phone autocapitalization.
-     * @param  {string} [cmd]
-     * @param  {string} [first]
-     * @param  {string} [second]
-     */
-    const getCommand = (cmd, first, second) => {
-        if (!cmd) return 'help';
-        if (cmd !== 'find' || !first) return cmd;
-        // Special case for finding the Relic Hunter, since it isn't a normal mouse.
-        if (first === 'rh' || first === 'relic_hunter' || (first === 'relic' && second === 'hunter')) return 'findrh';
-        // Received "find <some non-RH mouse>"
-        return cmd;
-    };
-    const command = getCommand(...tokens);
+    const command = tokens[0] || 'help';
     // Don't pass the command to the command's argument handler:
     tokens.shift();
 
@@ -701,10 +687,6 @@ function parseUserMessage(message) {
     {
         switch (command) {
 
-            case 'findrh': {
-                findRH(message.channel, { split: true });
-                break;
-            }
             case 'shutdown': {
                 if (message.author.id === settings.owner) {
                     message.channel.send('So long, and thanks for all the fish.')
@@ -1234,10 +1216,10 @@ function MHCTRHLookup() {
 }
 
 /**
- * Processes a request to find the relic hunter
- * @param {TextChannel} channel the channel on which to respond.
+ * Processes a request to find the relic hunter.
+ * @returns {Promise<string>} The current location message.
  */
-async function findRH(channel) {
+async function findRH() {
     const asMessage = (location) => {
         let message = (location !== 'unknown')
             ? `Relic Hunter has been spotted in **${location}**`
@@ -1253,12 +1235,13 @@ async function findRH(channel) {
         Logger.log(`Relic Hunter: location update completed, is now "${relic_hunter.location}"`);
     }
 
-    channel.send(asMessage(relic_hunter.location))
-        .catch((err) => Logger.error('Relic Hunter: Could not send response to Find RH request', err));
     if (relic_hunter.location !== 'unknown' && relic_hunter.location !== original_location) {
         setImmediate(remindRH, relic_hunter.location);
     }
+    return asMessage(relic_hunter.location);
 }
+
+client.findRelicHunter = findRH;
 
 //Resources:
 //Timezones in Discord: https://www.reddit.com/r/discordapp/comments/68zkfs/timezone_tag_bot/
