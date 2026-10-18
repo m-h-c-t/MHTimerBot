@@ -14,6 +14,7 @@
  * A simple class that represents a database filter used by MHCT to group event data or various arbitrary time spans.
  * @typedef {object} DatabaseFilter
  * @property {string} code_name
+ * @property {string} value A searchable value matching `code_name`
  * @property {string} lowerValue a lowercased version of `code_name` for use by comparison algorithms
  */
 export class DatabaseFilter {
@@ -23,6 +24,7 @@ export class DatabaseFilter {
      */
     constructor(code_name, rest) {
         this.code_name = code_name;
+        this.value = code_name;
         this.start_time = rest.start_time;
         this.end_time = rest.end_time;
         this.dynamic_start = rest.dynamic_start;
@@ -58,4 +60,3 @@ export class DatabaseFilter {
  * @property {null} end_time
  * @property {null} dynamic_start
  */
-
