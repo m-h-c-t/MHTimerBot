@@ -15,9 +15,9 @@ Next big push is make things into slash commands.
   -schedule spill 2 - The levels will rise to Arch in 2h31m / The levels will fall through Arch in 1d2h31m
 * find \<mouse\> - Finds a mouse using MHCT data. You need up to three characters of the start of the mouse's name
   -find Ful'mina OR -find ful
-* ifind \<loot\> - Finds a loot drop using MHCT data. You need up to three characters of the loot's name
+* ifind \<loot\> (`-mh ifind`) / `/find-loot` - Finds a loot drop using MHCT data. You need up to three characters of the loot's name
   -ifind tooth
-* whatsin \<convertible\> - Displays things that MHCT has seen in other things
+* whatsin \<convertible\> / `/whatsin` - Displays items found in a convertible
   -whatsin arduous
 * minluck \<mouse\> - Displays a mouse's minluck values
   -minluck Ful'mina OR -minluck ful
@@ -50,4 +50,3 @@ Note: The slash commands should work, everything else is buggy right now. Please
 6. Make sure you have nodejs (minimum v16.15) and npm installed
 7. Run `npm install` inside the repo folder
 8. Run `node src/MHTimer.js` to start the bot or `nohup node src/MHTimers.js >error.log 2>&1 &` to run it in background.
-
