@@ -38,12 +38,12 @@ import { Routes } from 'discord-api-types/v9';
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.GuildMessageReactions,
+        // GatewayIntentBits.GuildMessages,
+        // GatewayIntentBits.GuildMessageReactions,
         GatewayIntentBits.GuildEmojisAndStickers,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.DirectMessageReactions,
-        GatewayIntentBits.MessageContent,
+        // GatewayIntentBits.MessageContent,
     ],
     partials: [ Partials.Message, Partials.Channel, Partials.Reaction],
 });
