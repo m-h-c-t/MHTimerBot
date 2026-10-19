@@ -101,11 +101,10 @@ async function interact(interaction) {
     if (!interaction.isChatInputCommand()) return;
 
     const searchValue = interaction.options.getString('item');
+    const isPublic = interaction.options.getBoolean('public') ?? false;
     const results = getBestMatch(searchValue);
 
-    const messageFlags = interaction.guildId != null
-        ? MessageFlags.Ephemeral
-        : 0;
+    const messageFlags = isPublic ? undefined : MessageFlags.Ephemeral;
     if (results == null) {
         await interaction.reply({
             content: `No items found matching: ${searchValue}`,
@@ -178,7 +177,11 @@ const slashCommand = new SlashCommandBuilder()
             .setRequired(true)
             .setDescription('The item to look up')
             .setAutocomplete(true),
-    );
+    )
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly')
+            .setRequired(false));
 
 /** @type {import('../interfaces/command').CommandData} */
 export const command = {

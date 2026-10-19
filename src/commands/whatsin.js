@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { Message } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
@@ -62,13 +62,81 @@ async function doWHATSIN(message, tokens) {
     return theResult;
 }
 
+/**
+ * Reply to an autocomplete request.
+ * @param {CommandInteraction} interaction Must be an autocomplete interaction
+ */
+async function autotype(interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const searchString = interaction.options.getFocused();
+    const convertibles = getConvertibles(searchString) || [];
+    await interaction.respond(
+        convertibles.slice(0, 25).map(convertible => ({
+            name: convertible.value,
+            value: convertible.value,
+        })),
+    );
+}
+
+/**
+ * Reply to a slash command.
+ * @param {CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    await interaction.deferReply({
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
+    const searchString = interaction.options.getString('convertible');
+    const convertibles = getConvertibles(searchString);
+    if (!convertibles || !convertibles.length) {
+        await interaction.editReply({
+            content: `I don't know anything about "${searchString}"`,
+        });
+        return;
+    }
+
+    const results = await formatConvertibles(!isPublic, convertibles[0], {});
+    const pages = splitMessageRegex(results, {
+        maxLength: 1800,
+        prepend: '```\n',
+        append: '\n```',
+    });
+    await interaction.editReply({ content: pages[0] });
+    for (const page of pages.slice(1)) {
+        await interaction.followUp({
+            content: page,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
+    }
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('whatsin')
+    .setDescription('See what items can come from a convertible')
+    .addStringOption(option =>
+        option.setName('convertible')
+            .setDescription('The convertible to look up')
+            .setRequired(true)
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
+
 export const command = {
     name: 'whatsin',
     args: true,
     usage: usage,
-    description: 'Check what is inside a convertable',
+    description: 'Check what is inside a convertible',
     canDM: true,
     aliases: [ 'convert', 'inside' ],
+    slashCommand,
+    autocompleteHandler: autotype,
+    interactionHandler: interact,
     execute: doWHATSIN,
     initialize: initialize,
     save: save,

@@ -526,7 +526,7 @@ async function formatConvertibles(isDM, convertible, opts) {
     if (total_gold_value > 0) {
         reply += `Gold value of tradeable items per open: ${intToHuman(
             total_gold_value,
-        )} (~${total_sb_value.toPrecision(3)} SB). `;
+        )} (~${intToHuman(total_sb_value)} SB). `;
     }
     reply += `HTML version at: ${target_url}`;
 
@@ -534,29 +534,58 @@ async function formatConvertibles(isDM, convertible, opts) {
 }
 
 /**
- * Gets the filter that matches the given string, if possible.
+ * Gets filters matching the given search string for autocomplete.
  * @param {string} tester String to check if it's a filter
- * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
+ * @param {DatabaseFilter[]} [availableFilters] Filters to search; defaults to the loaded filter list
+ * @returns {DatabaseFilter[]} Matching filters
  */
-function getFilter(tester) {
+function getFilters(tester, availableFilters = filters) {
     // Process filter-y nicknames.
-    if (!tester || typeof tester !== 'string') return;
+    if (typeof tester !== 'string') return [];
+    const normalizedTester = tester.trim().toLowerCase();
+    if (!normalizedTester)
+        return sortFiltersByStartTime(
+            availableFilters.filter(filter => !filter.end_time),
+        ).slice(0, 25);
+
     const asFilterSearchTerm = (token) => {
         if (/^3_?d/i.test(token)) return '3_days';
         if (/^3_?m/i.test(token)) return '3_months';
         if (/^all/i.test(token)) return 'alltime';
-        if (token === 'current') return '1_month';
+        if (token.toLowerCase() === 'current') return '1_month';
         return token;
     };
     // If there is an ongoing event, we will use that instead of the 1-month filter.
-    if (tester === 'current') {
-        const currentEvent = filters.find(
+    if (normalizedTester === 'current') {
+        const currentEvent = availableFilters.find(
             (f) => f.code_name !== '1_month' && f.start_time && !f.end_time,
         );
-        if (currentEvent) return currentEvent;
+        if (currentEvent) return [currentEvent];
     }
-    const searchTerm = asFilterSearchTerm(tester);
-    return getSearchedEntity(searchTerm, filters)[0];
+    const searchTerm = asFilterSearchTerm(normalizedTester);
+    return sortFiltersByStartTime(
+        getSearchedEntity(searchTerm, availableFilters, availableFilters.length),
+    ).slice(0, 25);
+}
+
+function sortFiltersByStartTime(matchingFilters) {
+    return matchingFilters.sort((a, b) => {
+        const parsedA = Number(a.start_time);
+        const parsedB = Number(b.start_time);
+        const startA = Number.isFinite(parsedA) ? parsedA : Number.NEGATIVE_INFINITY;
+        const startB = Number.isFinite(parsedB) ? parsedB : Number.NEGATIVE_INFINITY;
+        return startB - startA;
+    });
+}
+
+/**
+ * Gets the closest filter matching the given string, if possible.
+ * @param {string} tester String to check if it's a filter
+ * @returns {DatabaseFilter|undefined} The closest matching filter, if any.
+ */
+function getFilter(tester) {
+    if (typeof tester !== 'string' || !tester.trim()) return;
+    return getFilters(tester)[0];
 }
 
 /**
@@ -913,12 +942,16 @@ function sortMinluck(a, b) {
 function code_name_reduce(accumulator, current) {
     // Empty entry? Skip it.
     if (!current?.code_name) return accumulator;
+    const displayName = current.display_name || current.code_name;
+    const filterLabel = displayName === current.code_name
+        ? `\`${current.code_name}\``
+        : `\`${displayName}\` (\`${current.code_name}\`)`;
     // Existing items? Join with comma.
     if (accumulator) {
-        return `${accumulator}, \`${current.code_name}\``;
+        return `${accumulator}, ${filterLabel}`;
     }
     // This is the first item in the list.
-    return `\`${current.code_name}\``;
+    return filterLabel;
 }
 
 /**
@@ -969,7 +1002,8 @@ export { getMHCTList,
     initialize, 
     findThing, 
     extractEventFilter, 
-    getFilter, 
+    getFilter,
+    getFilters,
     getLoot, 
     getMice, 
     getConvertibles, 
@@ -981,4 +1015,3 @@ export { getMHCTList,
     listFilters, 
     save, 
     getMinluckString };
-

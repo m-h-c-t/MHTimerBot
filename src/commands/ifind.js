@@ -1,11 +1,11 @@
 // eslint-disable-next-line no-unused-vars
-import { Message } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
 import { Logger } from '../modules/logger.js';
 import { extractEventFilter, getLoot, formatLoot,
-    sendInteractiveSearchResult, listFilters, getMice, formatMice } from '../modules/mhct-lookup.js';
+    sendInteractiveSearchResult, listFilters, getMice, formatMice, getFilter, getFilters } from '../modules/mhct-lookup.js';
 
 /**
  *
@@ -81,18 +81,96 @@ async function doIFIND(message, userArgs) {
 }
 
 function helpFind() {
-    let reply = '-mh find [filter] loot:\nFind the drop rates for loot (nicknames allowed, filters optional).\n';
+    let reply = '-mh ifind [-e filter] loot:\nFind the drop rates for loot (nicknames allowed, filters optional).\n';
     reply += 'Known filters: `current`, ' + listFilters();
     return reply;
 }
 
+/**
+ * Reply to an autocomplete request.
+ * @param {CommandInteraction} interaction Must be an autocomplete interaction
+ */
+async function autotype(interaction) {
+    if (!interaction.isAutocomplete()) return;
+
+    const focusedOption = interaction.options.getFocused(true);
+    if (focusedOption.name === 'loot') {
+        const choices = getLoot(focusedOption.value, interaction.client.nicknames.get('loot')) || [];
+        await interaction.respond(
+            choices.slice(0, 25).map(loot => ({ name: loot.value, value: loot.value })),
+        );
+    } else if (focusedOption.name === 'filter') {
+        const filters = getFilters(focusedOption.value);
+        await interaction.respond(
+            filters.map(filter => ({
+                name: filter.display_name || filter.code_name,
+                value: filter.code_name,
+            })),
+        );
+    }
+}
+
+/**
+ * Reply to a slash command.
+ * @param {CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    await interaction.deferReply({
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
+    const searchString = interaction.options.getString('loot');
+    const allLoot = getLoot(searchString, interaction.client.nicknames.get('loot'));
+    if (!allLoot || !allLoot.length) {
+        await interaction.editReply({ content: `Your search for '${searchString}' was not a success...` });
+        return;
+    }
+
+    const requestedFilter = interaction.options.getString('filter');
+    const results = await formatLoot(!isPublic, allLoot[0], {
+        timefilter: getFilter(requestedFilter)?.code_name || 'all_time',
+    });
+    const pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
+    await interaction.editReply({ content: pages[0] });
+    for (const page of pages.slice(1)) {
+        await interaction.followUp({
+            content: page,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
+    }
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('find-loot')
+    .setDescription('Get the drop rates for a loot item')
+    .addStringOption(option =>
+        option.setName('loot')
+            .setDescription('The loot item to look up')
+            .setRequired(true)
+            .setAutocomplete(true))
+    .addStringOption(option =>
+        option.setName('filter')
+            .setDescription('The event period to look up (Default: all time)')
+            .setRequired(false)
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
+
 // Initialize and save are in find.js.
 export const command = {
-    name: 'ifind',
+    name: 'find-loot',
     args: true,
     usage: 'Coming Soon',
     description: 'Find items sorted by their drop rates',
     canDM: true,
     helpFunction: helpFind,
+    aliases: ['ifind'],
+    slashCommand,
+    autocompleteHandler: autotype,
+    interactionHandler: interact,
     execute: doIFIND,
 };

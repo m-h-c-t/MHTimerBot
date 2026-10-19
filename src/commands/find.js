@@ -1,10 +1,10 @@
 // eslint-disable-next-line no-unused-vars
-import { Message, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
+import { Message, MessageFlags, CommandInteraction, ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
 import { initialize, extractEventFilter, getMice, formatMice, sendInteractiveSearchResult,
-    listFilters, getLoot, formatLoot, save, getFilter } from '../modules/mhct-lookup.js';
+    listFilters, getLoot, formatLoot, save, getFilters } from '../modules/mhct-lookup.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
 
 /**
@@ -133,12 +133,13 @@ async function autotype(interaction) {
             }
         }
         else if (focusedOption.name === 'filter') {
-            const choices = getFilter(focusedOption.value || ''); // TODO: This needs to be updated to work like getMice
-            if (choices) {
-                await interaction.respond(
-                    choices.map(filter => ({ name: filter.code_name, value: filter.code_name })),
-                );
-            }
+            const filters = getFilters(focusedOption.value || '');
+            await interaction.respond(
+                filters.map(filter => ({
+                    name: filter.display_name || filter.code_name,
+                    value: filter.code_name,
+                })),
+            );
         }
     }
 }
@@ -149,7 +150,10 @@ async function autotype(interaction) {
  */
 async function interact(interaction) {
     if (interaction.isChatInputCommand()) {
-        await interaction.deferReply({ ephemeral: true });
+        const isPublic = interaction.options.getBoolean('public') ?? false;
+        await interaction.deferReply({
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
         const search_string = interaction.options.getString('mouse');
         if (isRelicHunterSearch(search_string)) {
             if (typeof interaction.client.findRelicHunter !== 'function') {
@@ -164,13 +168,13 @@ async function interact(interaction) {
         // let results = 'Somehow you did not search for a mouse'; // also happens when no matching mouse
         if (all_mice && all_mice.length) {
             const mouse = all_mice[0];
-            const results = await formatMice(true, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
+            const results = await formatMice(!isPublic, mouse, { timefilter: interaction.options.getString('filter') || 'all_time' });
             // Here we need to split the results into chunks. The button goes on the last chunk?
             const result_pages = splitMessageRegex(results, { maxLength: 1800, prepend: '```', append: '```' });
             await interactionDisplayPage(interaction, result_pages, 0);
         } else {
             // TODO: Figure out how to see what was provided when it didn't match a mouse...
-            await interaction.editReply({ content: `Your search for '${search_string}' was not a success...`, ephemeral: true });
+            await interaction.editReply({ content: `Your search for '${search_string}' was not a success...` });
         }
     } else {
         Logger.error('Somehow find-mouse command interaction was called without a mouse');
@@ -179,58 +183,40 @@ async function interact(interaction) {
 
 async function interactionDisplayPage(interaction, pages, current_page) {
     if (interaction.id && interaction.isChatInputCommand() && pages.length) {
+        const isPublic = interaction.options.getBoolean('public') ?? false;
         current_page = current_page || 0;
-        // Build buttons
-        let buttons = new ActionRowBuilder();
+        let buttons;
         if (pages.length > current_page + 1) {
-            buttons = buttons.addComponents(new ButtonBuilder()
+            buttons = new ActionRowBuilder().addComponents(new ButtonBuilder()
                 .setCustomId(`fmmore_${interaction.id}_${current_page}`)
                 .setLabel('More Results')
                 .setStyle(ButtonStyle.Primary));
-            // Logger.log(`FIND: Page ${current_page} of ${pages.length}`);
         }
-        const share_button = new ButtonBuilder()
-            .setCustomId(`fmshare_${interaction.id}_${current_page}`)
-            .setLabel('Send to Channel')
-            .setStyle(ButtonStyle.Primary);
-        buttons = buttons.addComponents(share_button);
-        // Set filter
-        const filter = f => (f.customId === `fmshare_${interaction.id}_${current_page}` || f.customId === `fmmore_${interaction.id}_${current_page}`)
-                            && f.user.id === interaction.user.id;
-        // Set collector
-        const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
-        collector.on('collect', async c => {
-            if (c.customId === `fmshare_${interaction.id}_${current_page}`) {
-                const sharer = interaction.user;
-                const allow_share = true;
-                if (allow_share) {
-                    // TODO: Probably better to calculate X lines of attractions for sharing
-                    await c.message.channel.send({ content: `<@${sharer.id}> used \`/find-mouse ${interaction.options.getString('mouse')}\`:\n${pages[current_page]}` });
-                    await c.update({ content: 'Shared', ephemeral: true, components: [ buttons ] })
-                        .catch((error) => Logger.error(error));
-                } else {
-                    await c.reply( { content: 'Sorry, share is turned off right now', ephemeral: true } );
-                }
-            }
-            else if (c.customId === `fmmore_${interaction.id}_${current_page}`) {
-                // Here we use only the first chunk of results for sharing if it's not a DM
-                // Logger.log(`Find-mouse: Sending next page of results, ${current_page}`);
+        if (buttons) {
+            const filter = f => f.customId === `fmmore_${interaction.id}_${current_page}`
+                && f.user.id === interaction.user.id;
+            const collector = interaction.channel.createMessageComponentCollector({ filter, time: 1 * 60 * 1000 });
+            collector.on('collect', async c => {
                 await interactionDisplayPage(interaction, pages, current_page+1);
-                await c.update({ content: pages[current_page], components: [ buttons ] })
+                await c.update({ content: pages[current_page], components: [buttons] })
                     .catch((error) => Logger.error(error));
-            }
-        });
-        collector.on('end', async () => {
-            await interaction.editReply({ content: pages[current_page], components: [] })
-                .catch(e => {
-                    Logger.error(`FIND-MOUSE: ${e}`);
-                });
-        });
+            });
+            collector.on('end', async () => {
+                await interaction.editReply({ content: pages[current_page], components: [] })
+                    .catch(e => {
+                        Logger.error(`FIND-MOUSE: ${e}`);
+                    });
+            });
+        }
         // Send message
         if (current_page === 0) {
-            await interaction.editReply({ content: pages[current_page], ephemeral: true, components: [ buttons ] });
+            await interaction.editReply({ content: pages[current_page], components: buttons ? [buttons] : [] });
         } else {
-            await interaction.followUp({ content: pages[current_page], ephemeral: true, components: [ buttons ] });
+            await interaction.followUp({
+                content: pages[current_page],
+                flags: isPublic ? undefined : MessageFlags.Ephemeral,
+                components: buttons ? [buttons] : [],
+            });
         }
     }
 }
@@ -248,7 +234,11 @@ const slashCommand = new SlashCommandBuilder()
         option.setName('filter')
             .setDescription('The specific power type to look up (Default: all)')
             .setRequired(false)
-            .setAutocomplete(true));
+            .setAutocomplete(true))
+    .addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly (limited to 10 results)')
+            .setRequired(false));
 
 export const command = {
     name: 'find-mouse',

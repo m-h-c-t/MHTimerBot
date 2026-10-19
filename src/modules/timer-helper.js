@@ -341,7 +341,7 @@ function parseTokenForArea(token, newReminder) {
  * Returns the next occurrence of the desired class of timers as a Message Embed.
  * @param {Timer[]} timers_list List of known timers
  * @param {ReminderRequest} validTimerData Validated input that is known to match an area and subarea
- * @param {string} botPrefix The prefix for the bot on this guild
+ * @param {string} botPrefix The prefix for the bot on this guild, or slash syntax indicator
  * @returns {EmbedBuilder} A rich snippet summary of the next occurrence of the matching timer.
  */
 function nextTimer(timers_list, validTimerData, botPrefix) {
@@ -356,7 +356,9 @@ function nextTimer(timers_list, validTimerData, botPrefix) {
             if (!nextTimer || timer.getNext() < nextTimer.getNext())
                 nextTimer = timer;
 
-    const sched_syntax = `${botPrefix} remind ${area}${sub ? ` ${sub}` : ''}`;
+    const sched_syntax = botPrefix === '/remind'
+        ? `/remind area: ${area}${sub ? ` sub-area: ${sub}` : ''}`
+        : `${botPrefix} remind ${area}${sub ? ` ${sub}` : ''}`;
     return (new EmbedBuilder()
         .setDescription(nextTimer.getDemand()
             + `\n${timeLeft(nextTimer.getNext())}`
@@ -369,24 +371,26 @@ function nextTimer(timers_list, validTimerData, botPrefix) {
 }
 
 /**
- * List the reminders for the user, and PM them the result.
+ * Format a user's reminders, including the command syntax to turn them off.
  *
  * @param {string} user A Discord Snowflake user id
  * @param {TimerReminder[]} reminders Array of reminders the bot is managing
  * @param {string} botPrefix The bot prefix for the channel in use
+ * @param {boolean} [slashSyntax] Whether to format usage examples as slash commands
  */
-function listRemind(user, reminders, botPrefix) {
+function listRemind(user, reminders, botPrefix, slashSyntax = false, maxEntries = Infinity) {
     let timer_str = 'Your reminders:';
     let usage_str;
 
-    const userReminders = reminders.filter(r => r.user === user && r.count);
+    const allUserReminders = reminders.filter(r => r.user === user && r.count);
+    const userReminders = allUserReminders.slice(0, maxEntries);
     userReminders.forEach(reminder => {
         // TODO: prettyPrint this info.
         const name = `${reminder.area}${reminder.sub_area ? ` (${reminder.sub_area})` : ''}`;
         timer_str += `\nTimer:\t**${name}**`;
-        usage_str = `\`${botPrefix} remind ${reminder.area}`;
-        if (reminder.sub_area)
-            usage_str += ` ${reminder.sub_area}`;
+        usage_str = slashSyntax
+            ? `\`/remind area: ${reminder.area}${reminder.sub_area ? ` sub-area: ${reminder.sub_area}` : ''} count: 0\``
+            : `\`${botPrefix} remind ${reminder.area}${reminder.sub_area ? ` ${reminder.sub_area}` : ''} stop\``;
 
         timer_str += '\t';
         if (reminder.count === 1)
@@ -396,11 +400,13 @@ function listRemind(user, reminders, botPrefix) {
         else
             timer_str += ` ${reminder.count} times`;
 
-        timer_str += `.\nTo turn off\t${usage_str} stop\`\n`;
+        timer_str += `.\nTo turn off\t${usage_str}\n`;
 
         if (reminder.fail)
             timer_str += `There have been ${reminder.fail} failed attempts to activate this reminder.\n`;
     });
+    if (allUserReminders.length > userReminders.length)
+        timer_str += `\nShowing the first ${userReminders.length} of ${allUserReminders.length} reminders.`;
     return userReminders.length ? timer_str : 'I found no reminders for you, sorry.';
 }
 

@@ -6,22 +6,28 @@ Next big push is make things into slash commands.
 
 ## Commands
 
-* next \<area\> - displays how long until the next timer of that type and what the display message would be
+* help \<command\> / `/help` - Lists commands or displays help for one command; supports optional command autocomplete and public response
+* next \<area\> / `/next` - displays when the next timer occurs; slash replies are private by default, with an optional public response
   -next spill: The levels will rise to Arch in 2h31m
-* remind \<area\> [sub-area] [always|once|stop|<num>] - Sends a PM to remind of ANY timer for an area
+* remind \<area\> [sub-area] [always|once|stop|<num>] / `/remind` - Sets, stops, or lists timer reminders (slash `count`: 1 by default, 0 to stop, -1 for always)
   -remind season once - Will only remind the next time the timer goes
   -remind season winter once - Will only remind the next time the timer goes
-* schedule \<area\> [\<number\>] - Shows the timers for the next \<number\> of days for an area
+* schedule \<area\> [\<number\>] / `/schedule` - Shows upcoming timers; slash options filter by area, sub-area, and hours
   -schedule spill 2 - The levels will rise to Arch in 2h31m / The levels will fall through Arch in 1d2h31m
 * find \<mouse\> - Finds a mouse using MHCT data. You need up to three characters of the start of the mouse's name
   -find Ful'mina OR -find ful
-* ifind \<loot\> - Finds a loot drop using MHCT data. You need up to three characters of the loot's name
+* ifind \<loot\> (`-mh ifind`) / `/find-loot` - Finds a loot drop using MHCT data. You need up to three characters of the loot's name
   -ifind tooth
-* whatsin \<convertible\> - Displays things that MHCT has seen in other things
+* whatsin \<convertible\> / `/whatsin` - Displays items found in a convertible
   -whatsin arduous
 * minluck \<mouse\> - Displays a mouse's minluck values
   -minluck Ful'mina OR -minluck ful
-* config - Bot and server owner, mostly. Allows for some server-level configurations such as who can run that command
+* config / `/config` - Bot and server owner, mostly. Allows server admins to view or change roles, prefixes, timer channels, and emoji settings
+* shutdown / `/shutdown` - Gracefully saves data and shuts down the bot; owner only
+
+Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries, except `/config`, which returns all configured values.
+
+`/config` provides `view`, `adminrole`, `modrole`, `prefix`, `timers`, `timers-add`, `timers-remove`, `emoji`, `emoji-get`, `emoji-set`, and `emoji-remove` subcommands. Each supports the optional `public` response setting.
 
 ## To use with your own discord server
 
@@ -50,4 +56,3 @@ Note: The slash commands should work, everything else is buggy right now. Please
 6. Make sure you have nodejs (minimum v16.15) and npm installed
 7. Run `npm install` inside the repo folder
 8. Run `node src/MHTimer.js` to start the bot or `nohup node src/MHTimers.js >error.log 2>&1 &` to run it in background.
-

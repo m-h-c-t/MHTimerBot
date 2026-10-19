@@ -1,5 +1,5 @@
 // eslint-disable-next-line no-unused-vars
-import { ChannelType, Message } from 'discord.js';
+import { ChannelType, InteractionContextType, Message, MessageFlags, SlashCommandBuilder } from 'discord.js';
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
@@ -165,6 +165,154 @@ async function doSet(message, tokens) {
     return theResult;
 }
 
+/**
+ * Execute a configuration slash command using the same settings logic as the prefix command.
+ * @param {import('discord.js').CommandInteraction} interaction The command interaction
+ */
+async function interact(interaction) {
+    if (!interaction.isChatInputCommand()) return;
+
+    const subcommand = interaction.options.getSubcommand();
+    const isPublic = interaction.options.getBoolean('public') ?? false;
+    const tokens = [];
+    let channel;
+
+    if (subcommand === 'adminrole' || subcommand === 'modrole') {
+        tokens.push(subcommand, interaction.options.getRole('role').name);
+    } else if (subcommand === 'prefix') {
+        tokens.push('prefix');
+        const prefix = interaction.options.getString('value');
+        if (prefix) tokens.push(prefix);
+    } else if (subcommand.startsWith('timers')) {
+        tokens.push('timers');
+        if (subcommand === 'timers-add' || subcommand === 'timers-remove') {
+            tokens.push(subcommand.slice('timers-'.length));
+            channel = interaction.options.getChannel('channel');
+        }
+    } else if (subcommand.startsWith('emoji')) {
+        tokens.push('emoji');
+        if (subcommand === 'emoji-get' || subcommand === 'emoji-set') {
+            tokens.push(interaction.options.getString('name'));
+            if (subcommand === 'emoji-set') tokens.push(interaction.options.getString('value'));
+        } else if (subcommand === 'emoji-remove') {
+            tokens.push('remove', interaction.options.getString('name'));
+        }
+    }
+
+    const sentMessages = [];
+    const message = {
+        guild: interaction.guild,
+        member: interaction.member,
+        client: interaction.client,
+        channel: {
+            send: async content => sentMessages.push(content),
+            isDMBased: () => false,
+        },
+        mentions: {
+            channels: {
+                values: () => (channel ? [channel] : []).values(),
+            },
+        },
+    };
+
+    await doSet(message, tokens);
+    if (!sentMessages.length) return;
+
+    await interaction.reply({
+        content: sentMessages[0],
+        flags: isPublic ? undefined : MessageFlags.Ephemeral,
+    });
+    for (const content of sentMessages.slice(1)) {
+        await interaction.followUp({
+            content,
+            flags: isPublic ? undefined : MessageFlags.Ephemeral,
+        });
+    }
+}
+
+function addPublicOption(subcommand) {
+    return subcommand.addBooleanOption(option =>
+        option.setName('public')
+            .setDescription('Show the response publicly')
+            .setRequired(false));
+}
+
+const slashCommand = new SlashCommandBuilder()
+    .setName('config')
+    .setDescription('Configure settings for this server')
+    .setContexts(InteractionContextType.Guild)
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('view')
+            .setDescription('View server settings')))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('adminrole')
+            .setDescription('Set the server admin role')
+            .addRoleOption(option =>
+                option.setName('role')
+                    .setDescription('Role to grant admin access')
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('modrole')
+            .setDescription('Set the server moderator role')
+            .addRoleOption(option =>
+                option.setName('role')
+                    .setDescription('Role to grant moderator access')
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('prefix')
+            .setDescription('View or set the server command prefix')
+            .addStringOption(option =>
+                option.setName('value')
+                    .setDescription('New prefix, applied after the bot restarts')
+                    .setRequired(false))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('timers')
+            .setDescription('List timer announcement channels')))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('timers-add')
+            .setDescription('Add a timer announcement channel')
+            .addChannelOption(option =>
+                option.setName('channel')
+                    .setDescription('Text channel to add')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('timers-remove')
+            .setDescription('Remove a timer announcement channel')
+            .addChannelOption(option =>
+                option.setName('channel')
+                    .setDescription('Text channel to remove')
+                    .addChannelTypes(ChannelType.GuildText)
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('emoji')
+            .setDescription('List configured server emoji')))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('emoji-get')
+            .setDescription('View a configured emoji')
+            .addStringOption(option =>
+                option.setName('name')
+                    .setDescription('Emoji setting name')
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('emoji-set')
+            .setDescription('Set a server emoji')
+            .addStringOption(option =>
+                option.setName('name')
+                    .setDescription('Emoji setting name')
+                    .setRequired(true))
+            .addStringOption(option =>
+                option.setName('value')
+                    .setDescription('Emoji value')
+                    .setRequired(true))))
+    .addSubcommand(subcommand =>
+        addPublicOption(subcommand.setName('emoji-remove')
+            .setDescription('Remove a configured emoji')
+            .addStringOption(option =>
+                option.setName('name')
+                    .setDescription('Emoji setting name')
+                    .setRequired(true))));
+
 export const command = {
     name: 'config',
     requiresArgs: true,
@@ -173,4 +321,6 @@ export const command = {
     execute: doSet,
     minPerm: 'admin',
     canDM: false,
+    slashCommand,
+    interactionHandler: interact,
 };
