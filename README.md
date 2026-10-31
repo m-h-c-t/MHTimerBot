@@ -51,6 +51,7 @@ Note: The slash commands should work, everything else is buggy right now. Please
 5. Modify the `data/settings.json` (copy it from the sample file provided there):
     * token (REQUIRED) - this is your bot token
     * owner ID (REQUIRED) - this is your discord numerical id
+    * requestPrivilegedIntents (optional, default: `true`) - set to `false` if this bot cannot use the message intents; when disabled, the bot does not request guild messages, guild message reactions, or message content
     * timedAnnouncementsChannel - the name of the channel to announce timers in (default: timers)
     * botPrefix - the prefix for the bot's commands (default: -mh)
 6. Make sure you have nodejs (minimum v16.15) and npm installed

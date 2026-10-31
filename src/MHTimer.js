@@ -35,18 +35,7 @@ import { REST } from '@discordjs/rest';
 import { Routes } from 'discord-api-types/v9';
 
 // Globals
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        // GatewayIntentBits.GuildMessages,
-        // GatewayIntentBits.GuildMessageReactions,
-        GatewayIntentBits.GuildEmojisAndStickers,
-        GatewayIntentBits.DirectMessages,
-        GatewayIntentBits.DirectMessageReactions,
-        // GatewayIntentBits.MessageContent,
-    ],
-    partials: [ Partials.Message, Partials.Channel, Partials.Reaction],
-});
+let client;
 const main_settings_filename = 'data/settings.json',
     timer_settings_filename = 'data/timer_settings.json',
     reminder_filename = 'data/reminders.json',
@@ -63,12 +52,6 @@ const settings = {},
     },
     nickname_urls = {};
 
-client.nicknames = new Map();
-/** @type {Timer[]} */
-client.timers_list = [];
-/** @type {TimerReminder[]} */
-client.reminders = [];
-
 const refresh_rate = Duration.fromObject({ minutes: 15 });
 /** @type {Object<string, DateTime>} */
 const last_timestamps = {
@@ -80,37 +63,67 @@ const dataTimers = {};
 /** @type {Map <string, {active: boolean, channels: TextChannel[], inactiveChannels: TextChannel[]}>} */
 const timer_config = new Map();
 
-// A collection to hold all the commands in the commands directory
-client.commands = new Collection();
 const slashCommands = [];
-const commandFiles = fs.readdirSync('src/commands').filter(file => file.endsWith('.js'));
-for (const file of commandFiles) {
-    try {
-        const c = await import(`./commands/${file}`);
-        const command = c.command;
-        if (command.name) {
-            if (typeof(command.canDM) === 'undefined') {
-                command.canDM = true;
-                Logger.log(`Set canDM to true for ${command.name}`);
-            }
-            if (command.initialize) {
-                command.initialize().catch((err) => {
-                    Logger.error(`Error initializing ${command.name}: ${err}`);
-                    throw err;
-                });
-            }
-            client.commands.set(command.name, command);
-            if (command.slashCommand) {
-                slashCommands.push(command.slashCommand.toJSON());
-            }
-        } else {
-            Logger.error(`Error in ${file}: Command name property is missing`);
-        }
-    } catch (e) {
-        Logger.error(`Could not load ${file}:`, e);
+
+async function initializeClient() {
+    const intents = [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.DirectMessageReactions,
+    ];
+    if (settings.requestPrivilegedIntents) {
+        intents.push(
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.GuildMessageReactions,
+            GatewayIntentBits.MessageContent,
+        );
     }
+
+    client = new Client({
+        intents,
+        partials: [ Partials.Message, Partials.Channel, Partials.Reaction],
+    });
+    client.settings = settings;
+    client.nicknames = new Map();
+    /** @type {Timer[]} */
+    client.timers_list = [];
+    /** @type {TimerReminder[]} */
+    client.reminders = [];
+    client.shutdown = quit;
+    client.findRelicHunter = findRH;
+
+    // A collection to hold all the commands in the commands directory
+    client.commands = new Collection();
+    const commandFiles = fs.readdirSync('src/commands').filter(file => file.endsWith('.js'));
+    for (const file of commandFiles) {
+        try {
+            const c = await import(`./commands/${file}`);
+            const command = c.command;
+            if (command.name) {
+                if (typeof(command.canDM) === 'undefined') {
+                    command.canDM = true;
+                    Logger.log(`Set canDM to true for ${command.name}`);
+                }
+                if (command.initialize) {
+                    command.initialize().catch((err) => {
+                        Logger.error(`Error initializing ${command.name}: ${err}`);
+                        throw err;
+                    });
+                }
+                client.commands.set(command.name, command);
+                if (command.slashCommand) {
+                    slashCommands.push(command.slashCommand.toJSON());
+                }
+            } else {
+                Logger.error(`Error in ${file}: Command name property is missing`);
+            }
+        } catch (e) {
+            Logger.error(`Could not load ${file}:`, e);
+        }
+    }
+    Logger.log(`Commands: Loaded ${client.commands.size} commands: ${oxfordStringifyValues(client.commands.map(command => command.name))}`);
 }
-Logger.log(`Commands: Loaded ${client.commands.size} commands: ${oxfordStringifyValues(client.commands.map(command => command.name))}`);
 
 process.once('SIGINT', () => {
     quit();
@@ -132,6 +145,9 @@ function Main() {
                 process.exitCode = 1;
                 throw new Error('Exiting due to failure to acquire local settings data.');
             }
+            return initializeClient();
+        })
+        .then(() => {
             function failedLoad(prefix, reason) {
                 Logger.log(prefix, reason);
                 return false;
@@ -317,7 +333,7 @@ function Main() {
         .then(() => client.login(settings.token))
         .catch(err => {
             Logger.error('Unhandled startup error, shutting down:', err);
-            client.destroy();
+            if (client) client.destroy();
             process.exitCode = 1;
             return quit();
         });
@@ -332,6 +348,10 @@ catch(error) {
 let shutdownPromise;
 function quit() {
     if (shutdownPromise) return shutdownPromise;
+    if (!client) {
+        process.exit();
+        return Promise.resolve();
+    }
 
     shutdownPromise = doSaveAll()
         .then(
@@ -362,7 +382,6 @@ function quit() {
         });
     return shutdownPromise;
 }
-client.shutdown = quit;
 
 /**
  * Any object which stores user-entered data should be periodically saved, or at minimum saved before
@@ -433,6 +452,12 @@ async function loadSettings(path = main_settings_filename) {
     // Set version-agnostic defaults, in case they have not been set.
     settings.relic_hunter_webhook ??= '283571156236107777';
     settings.owner ??= '0';
+    if (!('requestPrivilegedIntents' in settings)) {
+        settings.requestPrivilegedIntents = true;
+    } else if (typeof settings.requestPrivilegedIntents !== 'boolean') {
+        settings.requestPrivilegedIntents = true;
+        Logger.warn('Settings: invalid value for requestPrivilegedIntents, set to true');
+    }
     if (settings.DBGames && !isValidURL(settings.DBGames)) {
         settings.DBGames = false;
         Logger.warn('Settings: invalid value for DBGames, set to false');
@@ -475,8 +500,6 @@ async function loadSettings(path = main_settings_filename) {
         }
     }
 
-    // Stash the settings on the client, so they are available to dynamic commands.
-    client.settings = settings;
     return true;
 }
 
@@ -1130,8 +1153,6 @@ async function findRH() {
     }
     return asMessage(relic_hunter.location);
 }
-
-client.findRelicHunter = findRH;
 
 //Resources:
 //Timezones in Discord: https://www.reddit.com/r/discordapp/comments/68zkfs/timezone_tag_bot/

@@ -1,5 +1,6 @@
 {
     "token": "",
+    "requestPrivilegedIntents": true,
     "timedAnnouncementChannels": [
       "timers"
     ],
