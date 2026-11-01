@@ -318,10 +318,9 @@ async function formatLoot(isDM, loot, opts) {
     };
     let reply = `${loot.value} (loot) can be found the following ways:\n\`\`\``;
     reply += prettyPrintArrayAsString(drops, columnFormatting, headers, '=');
-    reply += '```';
     if (truncated)
         reply += '\n(...and more)';
-    reply += `\nHTML version at: ${target_url}`;
+    reply += `\n\`\`\`\nHTML version at: ${target_url}`;
     return reply;
 }
 
@@ -412,10 +411,9 @@ async function formatMice(isDM, mouse, opts) {
     const minLuckString = getMinluckString(mouse.value, powerFlags, true);
     let reply = `${mouse.value} (mouse) can be found the following ways:\n\`\`\``;
     reply += prettyPrintArrayAsString(attracts, columnFormatting, headers, '=');
-    reply += '```';
     if (truncated)
         reply += '\n(...and more)';
-    reply += '\n';
+    reply += '\n```\n';
     if (minLuckString) {
         reply += minLuckString + '\n';
     }
@@ -549,11 +547,10 @@ async function formatConvertibles(isDM, convertible, opts) {
         headers,
         '=',
     );
-    reply += '```';
     if (truncated)
         reply += '\n(...and more)';
     reply +=
-        '\n' +
+        '\n```\n' +
         `Seen ${intToHuman(total_seen)} times, ${intToHuman(
             single_seen,
         )} as single opens. `;
