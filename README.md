@@ -51,6 +51,8 @@ Note: The slash commands should work, everything else is buggy right now. Please
 5. Modify the `data/settings.json` (copy it from the sample file provided there):
     * token (REQUIRED) - this is your bot token
     * owner ID (REQUIRED) - this is your discord numerical id
+    * requestPrivilegedIntents (optional, default: `true`) - set to `false` if this bot cannot use the message intents; when disabled, the bot does not request guild messages, guild message reactions, or message content
+    * timedAnnouncementsChannel - the name of the channel to announce timers in (default: timers)
     * botPrefix - the prefix for the bot's commands (default: -mh)
     * `bot_emoji` - optional emoji defaults used by commands such as `minluck`, `price` (`sb`), and the Super Brie value summary in `/whatsin`. If you upload custom emojis to your self-hosted bot, set each value to its Discord emoji markup, such as `<:arcane:123456789012345678>`. Guild-specific emoji configured with `/config emoji-set` override these defaults; omitted keys use the built-in text labels.
     * Server-specific settings are created automatically when the bot joins a server. Timer announcements are disabled until an admin configures channels with `/config timers-add`.
