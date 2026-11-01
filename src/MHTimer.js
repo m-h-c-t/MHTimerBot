@@ -135,10 +135,22 @@ process.once('SIGTERM', () => {
     quit();
 });
 
-process.on('uncaughtException', exception => {
-    Logger.error(exception);
-    doSaveAll().then(didSave => Logger.log(`Save status: files ${didSave ? '' : 'maybe '}saved.`));
-});
+let fatalErrorHandled = false;
+function handleFatalError(error, origin) {
+    if (fatalErrorHandled) {
+        Logger.error(`Additional fatal error during shutdown (${origin}):`, error);
+        process.exit(1);
+        return;
+    }
+
+    fatalErrorHandled = true;
+    process.exitCode = 1;
+    Logger.error(`Fatal ${origin}; shutting down:`, error);
+    quit();
+}
+
+process.on('uncaughtException', error => handleFatalError(error, 'uncaught exception'));
+process.on('unhandledRejection', reason => handleFatalError(reason, 'unhandled rejection'));
 
 function Main() {
     // Load saved settings data, such as the token for the bot.
@@ -381,6 +393,7 @@ catch(error) {
 }
 
 let shutdownPromise;
+const shutdownTimeoutMs = 15_000;
 function quit() {
     if (shutdownPromise) return shutdownPromise;
     if (!client) {
@@ -388,14 +401,24 @@ function quit() {
         return Promise.resolve();
     }
 
+    const shutdownTimeout = setTimeout(() => {
+        Logger.error(`Shutdown: save or cleanup did not complete within ${shutdownTimeoutMs}ms; aborting.`);
+        process.exit(1);
+    }, shutdownTimeoutMs);
+
     shutdownPromise = doSaveAll()
-        .then(
-            () => Logger.log('Shutdown: data saves completed'),
-            (err) => {
-                Logger.error('Shutdown: error while saving:\n', err);
+        .then(didSave => {
+            if (didSave) {
+                Logger.log('Shutdown: data saves completed');
+            } else {
+                Logger.error('Shutdown: one or more data saves failed.');
                 process.exitCode = 1;
-            },
-        )
+            }
+        })
+        .catch(err => {
+            Logger.error('Shutdown: error while saving:\n', err);
+            process.exitCode = 1;
+        })
         .then(() => { Logger.log('Shutdown: destroying client'); return client.destroy(); })
         .then(() => {
             Logger.log('Shutdown: deactivating data refreshes');
@@ -409,9 +432,11 @@ function quit() {
             if (relic_hunter.timeout) {
                 clearTimeout(relic_hunter.timeout);
             }
+            clearTimeout(shutdownTimeout);
         })
         .then(() => process.exit())
         .catch(err => {
+            clearTimeout(shutdownTimeout);
             Logger.error('Shutdown: unhandled error:\n', err, '\nImmediately exiting.');
             process.exit(1);
         });
@@ -425,13 +450,25 @@ function quit() {
  */
 async function doSaveAll() {
     const saveableCommands = client.commands.filter(command => typeof command.save === 'function');
-    const settingsSaved = await saveSettings();
-    const remindersSaved = await saveReminders();
-    const commandsSaved = await Promise.all(saveableCommands.map(c => {
-        Logger.log(`Saving data for command "${c.name}"`);
-        return c.save();
+    const saveOnce = async (label, save) => {
+        try {
+            const didSave = await save();
+            if (!didSave)
+                Logger.error(`Shutdown: save failed for ${label}.`);
+            return didSave;
+        } catch (err) {
+            Logger.error(`Shutdown: error saving ${label}:`, err);
+            return false;
+        }
+    };
+
+    const settingsSaved = await saveOnce('settings', saveSettings);
+    const remindersSaved = await saveOnce('reminders', saveReminders);
+    const commandsSaved = await Promise.all(saveableCommands.map(command => {
+        Logger.log(`Saving data for command "${command.name}"`);
+        return saveOnce(`command "${command.name}"`, () => command.save());
     }));
-    return settingsSaved && remindersSaved && commandsSaved.every(saved => saved);
+    return settingsSaved && remindersSaved && commandsSaved.every(Boolean);
 }
 
 /**
