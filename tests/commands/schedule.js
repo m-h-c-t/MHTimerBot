@@ -72,7 +72,7 @@ test('commands - schedule autocomplete filters sub-areas by selected area', asyn
     suite.deepEqual(respond.firstCall.args[0], [{ name: 'winter', value: 'winter' }], 'offers only sub-areas in the selected area');
 });
 
-test('commands - public schedule limits timer results to ten', async suite => {
+test('commands - public schedule limits long timer lists and marks truncation', async suite => {
     const timers = Array.from({ length: 12 }, (_, index) =>
         makeTimer('sg', `winter-${index}`, `Timer ${index}`),
     );
@@ -86,7 +86,7 @@ test('commands - public schedule limits timer results to ten', async suite => {
         client: { timers_list: timers },
         reply: sinon.stub().resolves(),
     };
-    suite.plan(3);
+    suite.plan(4);
 
     await command.interactionHandler(interaction);
 
@@ -94,6 +94,18 @@ test('commands - public schedule limits timer results to ten', async suite => {
     suite.notOk(response.flags, 'does not make a public response ephemeral');
     suite.true(response.content.includes('Here are the next 10 of them'), 'states the public result limit');
     suite.equal((response.content.match(/Timer \d+/g) || []).length, 10, 'includes at most ten timer results');
+    suite.true(response.content.includes('(...and more)'), 'indicates that additional timer results were omitted');
+});
+
+test('commands - public schedule includes all eleven timer results', async suite => {
+    const interaction = makeScheduleInteraction(11);
+    suite.plan(2);
+
+    await command.interactionHandler(interaction);
+
+    const response = interaction.reply.firstCall.args[0].content;
+    suite.equal((response.match(/Timer \d+/g) || []).length, 11, 'includes the eleventh timer result');
+    suite.false(response.includes('(...and more)'), 'does not indicate truncation for exactly eleven results');
 });
 
 function makeTimer(area, subArea, message) {
@@ -103,5 +115,21 @@ function makeTimer(area, subArea, message) {
         getDemand: () => message,
         isSilent: () => false,
         upcoming: until => [DateTime.utc().plus({ minutes: 1 }).startOf('minute')].filter(time => time < until),
+    };
+}
+
+function makeScheduleInteraction(count) {
+    return {
+        isChatInputCommand: () => true,
+        options: {
+            getString: () => null,
+            getInteger: () => 24,
+            getBoolean: () => true,
+        },
+        client: {
+            timers_list: Array.from({ length: count }, (_, index) =>
+                makeTimer('sg', `winter-${index}`, `Timer ${index}`)),
+        },
+        reply: sinon.stub().resolves(),
     };
 }

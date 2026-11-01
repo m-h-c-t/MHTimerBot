@@ -1,12 +1,22 @@
 {
     "token": "",
     "requestPrivilegedIntents": true,
-    "timedAnnouncementChannels": [
-      "timers"
-    ],
     "relic_hunter_webhook" : "283571156236107777",
     "botPrefix": "-mh",
     "owner": "0",
+  "bot_emoji": {
+    "arcane": "<:arcane:1566443677755117649>",
+    "draconic": "<:draconic:1566443678761754734>",
+    "forgotten": "<:forgotten:1566443679701401752>",
+    "hydro": "<:hydro:1566443681337180261>",
+    "law": "<:law:1566443682419449957>",
+    "parental": "<:parental:1566443683568689253>",
+    "physical": "<:physical:1566443684667457707>",
+    "rift": "<:rift:1566443686202708019>",
+    "shadow": "<:shadow:1566443687318257814>",
+    "tactical": "<:tactical:1566443688345739264>",
+    "sb": "<:sb:1566446908375834664>"
+  },
     "reactions": {
       "success": "✅",
       "failure": "❌",

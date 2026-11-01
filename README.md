@@ -25,7 +25,7 @@ Next big push is make things into slash commands.
 * config / `/config` - Bot and server owner, mostly. Allows server admins to view or change roles, prefixes, timer channels, and emoji settings
 * shutdown / `/shutdown` - Gracefully saves data and shuts down the bot; owner only
 
-Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results are limited to 10 entries, except `/config`, which returns all configured values.
+Slash commands default to private (ephemeral) replies. Set the `public` option to `true` to make a reply visible in the channel; public list and table results show up to 10 entries, or all 11 when exactly 11 match. Longer lists show the first 10 followed by `(...and more)`. `/config` returns all configured values.
 
 `/config` provides `view`, `adminrole`, `modrole`, `prefix`, `timers`, `timers-add`, `timers-remove`, `emoji`, `emoji-get`, `emoji-set`, and `emoji-remove` subcommands. Each supports the optional `public` response setting.
 
@@ -54,6 +54,8 @@ Note: The slash commands should work, everything else is buggy right now. Please
     * requestPrivilegedIntents (optional, default: `true`) - set to `false` if this bot cannot use the message intents; when disabled, the bot does not request guild messages, guild message reactions, or message content
     * timedAnnouncementsChannel - the name of the channel to announce timers in (default: timers)
     * botPrefix - the prefix for the bot's commands (default: -mh)
+    * `bot_emoji` - optional emoji defaults used by commands such as `minluck`, `price` (`sb`), and the Super Brie value summary in `/whatsin`. If you upload custom emojis to your self-hosted bot, set each value to its Discord emoji markup, such as `<:arcane:123456789012345678>`. Guild-specific emoji configured with `/config emoji-set` override these defaults; omitted keys use the built-in text labels.
+    * Server-specific settings are created automatically when the bot joins a server. Timer announcements are disabled until an admin configures channels with `/config timers-add`.
 6. Make sure you have nodejs (minimum v16.15) and npm installed
 7. Run `npm install` inside the repo folder
 8. Run `node src/MHTimer.js` to start the bot or `nohup node src/MHTimers.js >error.log 2>&1 &` to run it in background.

@@ -3,6 +3,7 @@ import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from '
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
+import { getGuildEmoji } from '../modules/guild-emoji.js';
 import { initialize, getConvertibles, sendInteractiveSearchResult,
     save, formatConvertibles } from '../modules/mhct-lookup.js';
 import { splitMessageRegex } from '../modules/format-utils.js';
@@ -22,11 +23,14 @@ const usage = [
 async function doWHATSIN(message, tokens) {
     const theResult = new CommandResult({ message, success: false, sentDM: false });
     let reply = '';
-    const opts = {};
+    const opts = {
+        sbEmoji: getGuildEmoji(message.client.settings, message.guild?.id ?? null).sb || 'SB+',
+    };
     const urlInfo = {
         qsParams: {},
         uri: 'https://www.mhct.win/converter.php',
         type: 'item',
+        formatOptions: opts,
     };
     if (!tokens)
         reply = 'I just cannot find what you\'re looking for (since you didn\'t tell me what it was).';
@@ -35,7 +39,6 @@ async function doWHATSIN(message, tokens) {
         const all_convertibles = getConvertibles(searchString);
         if (all_convertibles && all_convertibles.length) {
             // We have multiple options, show the interactive menu.
-            urlInfo.qsParams = opts;
             sendInteractiveSearchResult(all_convertibles, message.channel, formatConvertibles,
                 message.channel.isDMBased(), urlInfo, searchString);
             theResult.replied = true;
@@ -99,11 +102,10 @@ async function interact(interaction) {
         return;
     }
 
-    const results = await formatConvertibles(!isPublic, convertibles[0], {});
+    const sbEmoji = getGuildEmoji(interaction.client.settings, interaction.guildId ?? null).sb || 'SB+';
+    const results = await formatConvertibles(!isPublic, convertibles[0], { sbEmoji });
     const pages = splitMessageRegex(results, {
         maxLength: 1800,
-        prepend: '```\n',
-        append: '\n```',
     });
     await interaction.editReply({ content: pages[0] });
     for (const page of pages.slice(1)) {
@@ -124,7 +126,7 @@ const slashCommand = new SlashCommandBuilder()
             .setAutocomplete(true))
     .addBooleanOption(option =>
         option.setName('public')
-            .setDescription('Show the response publicly (limited to 10 results)')
+            .setDescription('Show publicly; lists over 11 results show 10 and (...and more)')
             .setRequired(false));
 
 export const command = {

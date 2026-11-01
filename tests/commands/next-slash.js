@@ -27,7 +27,7 @@ test('commands - next slash reply is ephemeral by default', async suite => {
     suite.equal((interaction.reply.firstCall.args[0].content.match(/^\*\*/gm) || []).length, 2, 'lists known timers');
 });
 
-test('commands - public next timer list is limited to ten entries', async suite => {
+test('commands - public next timer list truncates long lists with an indication', async suite => {
     const interaction = makeInteraction(makeTimers(12), { public: true });
     suite.plan(3);
 
@@ -36,7 +36,18 @@ test('commands - public next timer list is limited to ten entries', async suite 
     const response = interaction.reply.firstCall.args[0];
     suite.notOk(response.flags, 'does not set ephemeral flags for public response');
     suite.equal((response.content.match(/^\*\*/gm) || []).length, 10, 'includes at most ten timer areas');
-    suite.true(response.content.includes('Showing the first 10 of 12 timer areas'), 'explains the limit');
+    suite.true(response.content.includes('(...and more)'), 'indicates additional timer areas were omitted');
+});
+
+test('commands - public next timer list includes exactly eleven entries', async suite => {
+    const interaction = makeInteraction(makeTimers(11), { public: true });
+    suite.plan(2);
+
+    await command.interactionHandler(interaction);
+
+    const response = interaction.reply.firstCall.args[0].content;
+    suite.equal((response.match(/^\*\*/gm) || []).length, 11, 'includes all eleven timer areas');
+    suite.false(response.includes('(...and more)'), 'does not indicate truncation for exactly eleven areas');
 });
 
 test('commands - next autocomplete filters sub-areas by selected area', async suite => {

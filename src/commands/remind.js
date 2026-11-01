@@ -210,7 +210,7 @@ const slashCommand = new SlashCommandBuilder()
             .setMinValue(-1))
     .addBooleanOption(option =>
         option.setName('public')
-            .setDescription('Show the response publicly (reminder lists limited to 10)')
+            .setDescription('Show publicly; lists over 11 reminders show 10 and (...and more)')
             .setRequired(false));
 
 /**

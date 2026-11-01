@@ -1,6 +1,7 @@
 import { Logger } from '../modules/logger.js';
 import { EmbedBuilder } from 'discord.js';
 import { timeLeft } from '../modules/format-utils.js';
+import { limitPublicResults } from './result-limits.js';
 
 /**
  * @typedef {Object} ReminderRequest
@@ -383,7 +384,10 @@ function listRemind(user, reminders, botPrefix, slashSyntax = false, maxEntries 
     let usage_str;
 
     const allUserReminders = reminders.filter(r => r.user === user && r.count);
-    const userReminders = allUserReminders.slice(0, maxEntries);
+    const limitedReminders = Number.isFinite(maxEntries)
+        ? limitPublicResults(allUserReminders, maxEntries)
+        : { results: allUserReminders, truncated: false };
+    const userReminders = limitedReminders.results;
     userReminders.forEach(reminder => {
         // TODO: prettyPrint this info.
         const name = `${reminder.area}${reminder.sub_area ? ` (${reminder.sub_area})` : ''}`;
@@ -405,8 +409,8 @@ function listRemind(user, reminders, botPrefix, slashSyntax = false, maxEntries 
         if (reminder.fail)
             timer_str += `There have been ${reminder.fail} failed attempts to activate this reminder.\n`;
     });
-    if (allUserReminders.length > userReminders.length)
-        timer_str += `\nShowing the first ${userReminders.length} of ${allUserReminders.length} reminders.`;
+    if (limitedReminders.truncated)
+        timer_str += '\n(...and more)';
     return userReminders.length ? timer_str : 'I found no reminders for you, sorry.';
 }
 

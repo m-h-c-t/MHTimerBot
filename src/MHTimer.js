@@ -22,6 +22,7 @@ import {
 } from './modules/format-utils.js';
 import { loadDataFromJSON, saveDataAsJSON } from './modules/file-utils.js';
 import { Logger } from './modules/logger.js';
+import { ensureGuildSettings } from './modules/guild-settings.js';
 import {
     addMessageReaction,
 } from './modules/message-utils.js';
@@ -62,6 +63,8 @@ const last_timestamps = {
 const dataTimers = {};
 /** @type {Map <string, {active: boolean, channels: TextChannel[], inactiveChannels: TextChannel[]}>} */
 const timer_config = new Map();
+let settingsMigrated = false;
+let settingsPendingSave = false;
 
 const slashCommands = [];
 
@@ -84,6 +87,7 @@ async function initializeClient() {
         intents,
         partials: [ Partials.Message, Partials.Channel, Partials.Reaction],
     });
+    client.updateGuildAnnouncementChannels = updateGuildAnnouncementChannels;
     client.settings = settings;
     client.nicknames = new Map();
     /** @type {Timer[]} */
@@ -132,10 +136,22 @@ process.once('SIGTERM', () => {
     quit();
 });
 
-process.on('uncaughtException', exception => {
-    Logger.error(exception);
-    doSaveAll().then(didSave => Logger.log(`Save status: files ${didSave ? '' : 'maybe '}saved.`));
-});
+let fatalErrorHandled = false;
+function handleFatalError(error, origin) {
+    if (fatalErrorHandled) {
+        Logger.error(`Additional fatal error during shutdown (${origin}):`, error);
+        process.exit(1);
+        return;
+    }
+
+    fatalErrorHandled = true;
+    process.exitCode = 1;
+    Logger.error(`Fatal ${origin}; shutting down:`, error);
+    quit();
+}
+
+process.on('uncaughtException', error => handleFatalError(error, 'uncaught exception'));
+process.on('unhandledRejection', reason => handleFatalError(reason, 'unhandled rejection'));
 
 function Main() {
     // Load saved settings data, such as the token for the bot.
@@ -211,10 +227,21 @@ function Main() {
             ];
 
             // Configure the bot behavior.
-            client.once(Events.ClientReady, () => {
+            client.once(Events.ClientReady, async () => {
                 Logger.log('I am alive!');
                 // Migrate settings at this point since connection required for some pieces
-                migrateSettings(client.settings);
+                let settingsChanged = migrateSettings(client.settings) || settingsPendingSave;
+                for (const guild of client.guilds.cache.values()) {
+                    settingsChanged = ensureGuildSettings(client.settings, guild.id).changed || settingsChanged;
+                }
+                settingsMigrated = true;
+                if (settingsChanged) {
+                    if (await saveSettings()) {
+                        settingsPendingSave = false;
+                    } else {
+                        Logger.warn('Settings: failed to save defaults for existing guilds.');
+                    }
+                }
                 // Register slash commands
                 const discordRest = new REST({ version: '9' }).setToken(client.settings.token);
 
@@ -238,14 +265,7 @@ function Main() {
 
                 // Find all text channels on which to send announcements.
                 const announcables = client.guilds.cache.reduce((channels, guild) => {
-                    const requested = client.settings.guilds[guild.id].timedAnnouncementChannels;
-                    const candidates = guild.channels.cache
-                        .filter(c => requested.has(c.name) && c.isTextBased());
-                    if (candidates.size)
-                        Array.prototype.push.apply(channels, Array.from(candidates.values()));
-                    else if (requested.size) {
-                        Logger.warn(`Timers: No valid channels in ${guild.name} for announcements.`);
-                    }
+                    Array.prototype.push.apply(channels, getGuildAnnouncementChannels(guild));
                     return channels;
                 }, []);
 
@@ -257,15 +277,43 @@ function Main() {
                 client.on(Events.ClientReady, () => Logger.log('I am inVINCEeble!'));
             });
 
-            // Discord will trim leading & trailing spaces from messages automatically, so our prefix
-            // regexps do not need to handle that. If a space follows the prefix, we are guaranteed at
-            // least one additional token to process.
-            const re = Object.freeze(Object.entries(client.settings.guilds).reduce((res, [guildId, guild]) => {
-                if (guild.botPrefix) {
-                    res[guildId] = new RegExp(`^${guild.botPrefix.trim()} `);
+            client.on(Events.GuildCreate, async guild => {
+                try {
+                    const { changed } = ensureGuildSettings(client.settings, guild.id);
+                    if (changed) {
+                        settingsPendingSave = true;
+                    }
+                    if (changed && settingsMigrated) {
+                        Logger.log(`Settings: created defaults for guild ${guild.id} (${guild.name}).`);
+                        if (!await saveSettings()) {
+                            Logger.warn(`Settings: failed to save defaults for guild ${guild.id} (${guild.name}).`);
+                        } else {
+                            settingsPendingSave = false;
+                        }
+                    }
+
+                    if (client.isReady()) {
+                        const channels = getGuildAnnouncementChannels(guild);
+                        if (channels.length) {
+                            for (const timer of client.timers_list) {
+                                const config = timer_config.get(timer.id);
+                                if (config) {
+                                    for (const channel of channels) {
+                                        if (!config.channels.includes(channel)) {
+                                            config.channels.push(channel);
+                                            config.active = true;
+                                        }
+                                    }
+                                } else {
+                                    scheduleTimer(timer, channels);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    Logger.error(`GuildCreate: failed to configure guild ${guild.id} (${guild.name}).`, err);
                 }
-                return res;
-            }, {}));
+            });
 
             client.on('messageCreate', async message => {
                 if (message.partial) {
@@ -289,7 +337,7 @@ function Main() {
                 }
 
                 const guildId = message.guild.id;
-                const guildSettings = client.settings.guilds[guildId];
+                const { guildSettings } = ensureGuildSettings(client.settings, guildId);
                 if (message.webhookId && [
                     guildSettings.relic_hunter_webhook,
                     settings.relic_hunter_webhook,
@@ -297,7 +345,7 @@ function Main() {
                     handleRHWebhook(message);
                 } else if (message.author.bot) {
                     // Ignore messages from other bots.
-                } else if (re[guildId].test(message.content) || message.content === guildSettings.botPrefix) {
+                } else if (message.content.startsWith(`${guildSettings.botPrefix.trim()} `) || message.content === guildSettings.botPrefix) {
                     parseUserMessage(message);
                 }
             });
@@ -346,6 +394,7 @@ catch(error) {
 }
 
 let shutdownPromise;
+const shutdownTimeoutMs = 15_000;
 function quit() {
     if (shutdownPromise) return shutdownPromise;
     if (!client) {
@@ -353,14 +402,24 @@ function quit() {
         return Promise.resolve();
     }
 
+    const shutdownTimeout = setTimeout(() => {
+        Logger.error(`Shutdown: save or cleanup did not complete within ${shutdownTimeoutMs}ms; aborting.`);
+        process.exit(1);
+    }, shutdownTimeoutMs);
+
     shutdownPromise = doSaveAll()
-        .then(
-            () => Logger.log('Shutdown: data saves completed'),
-            (err) => {
-                Logger.error('Shutdown: error while saving:\n', err);
+        .then(didSave => {
+            if (didSave) {
+                Logger.log('Shutdown: data saves completed');
+            } else {
+                Logger.error('Shutdown: one or more data saves failed.');
                 process.exitCode = 1;
-            },
-        )
+            }
+        })
+        .catch(err => {
+            Logger.error('Shutdown: error while saving:\n', err);
+            process.exitCode = 1;
+        })
         .then(() => { Logger.log('Shutdown: destroying client'); return client.destroy(); })
         .then(() => {
             Logger.log('Shutdown: deactivating data refreshes');
@@ -374,9 +433,11 @@ function quit() {
             if (relic_hunter.timeout) {
                 clearTimeout(relic_hunter.timeout);
             }
+            clearTimeout(shutdownTimeout);
         })
         .then(() => process.exit())
         .catch(err => {
+            clearTimeout(shutdownTimeout);
             Logger.error('Shutdown: unhandled error:\n', err, '\nImmediately exiting.');
             process.exit(1);
         });
@@ -390,13 +451,25 @@ function quit() {
  */
 async function doSaveAll() {
     const saveableCommands = client.commands.filter(command => typeof command.save === 'function');
-    const settingsSaved = await saveSettings();
-    const remindersSaved = await saveReminders();
-    const commandsSaved = await Promise.all(saveableCommands.map(c => {
-        Logger.log(`Saving data for command "${c.name}"`);
-        return c.save();
+    const saveOnce = async (label, save) => {
+        try {
+            const didSave = await save();
+            if (!didSave)
+                Logger.error(`Shutdown: save failed for ${label}.`);
+            return didSave;
+        } catch (err) {
+            Logger.error(`Shutdown: error saving ${label}:`, err);
+            return false;
+        }
+    };
+
+    const settingsSaved = await saveOnce('settings', saveSettings);
+    const remindersSaved = await saveOnce('reminders', saveReminders);
+    const commandsSaved = await Promise.all(saveableCommands.map(command => {
+        Logger.log(`Saving data for command "${command.name}"`);
+        return saveOnce(`command "${command.name}"`, () => command.save());
     }));
-    return settingsSaved && remindersSaved && commandsSaved.every(saved => saved);
+    return settingsSaved && remindersSaved && commandsSaved.every(Boolean);
 }
 
 /**
@@ -406,20 +479,21 @@ async function doSaveAll() {
  * Doesn't return anything; throws on errors
  */
 function migrateSettings(original_settings) {
+    let changed = false;
     if (!('version' in original_settings)) {
         Logger.log('Settings: Migrating from version 0');
-        const guild_settings = {
-            timedAnnouncementChannels: new Set(Array.from(original_settings.timedAnnouncementChannels)),
-            botPrefix: original_settings.botPrefix.trim(),
-        };
         original_settings.guilds = client.guilds.cache.reduce((acc, guild) => {
-            acc[guild.id] = guild_settings;
+            acc[guild.id] = {
+                timedAnnouncementChannels: new Set(original_settings.timedAnnouncementChannels ?? []),
+                botPrefix: original_settings.botPrefix.trim(),
+            };
             return acc;
         }, {});
         original_settings.version = '1.00';
         delete original_settings.timedAnnouncementChannels;
         delete original_settings.linkConversionChannel;
         delete original_settings.bitly_token;
+        changed = true;
     }
     // Perform additional updates based on the source version.
     switch (original_settings.version) {
@@ -428,6 +502,7 @@ function migrateSettings(original_settings) {
         default:
             Logger.warn(`Unknown settings version "${original_settings.version}"`);
     }
+    return changed;
 }
 
 /**
@@ -447,6 +522,7 @@ async function loadSettings(path = main_settings_filename) {
     }
     // (Re)initialize any keys to the value specified in the file.
     Object.assign(settings, data);
+    settings.guilds ??= {};
     delete settings.linkConversionChannel;
     delete settings.bitly_token;
     // Set version-agnostic defaults, in case they have not been set.
@@ -468,7 +544,7 @@ async function loadSettings(path = main_settings_filename) {
         // Pre version 1.00 logic
         try {
             // Set defaults if they were not specified.
-            settings.timedAnnouncementChannels ??= ['timers'];
+            settings.timedAnnouncementChannels ??= [];
             if (!Array.isArray(settings.timedAnnouncementChannels)) {
                 Logger.warn('Settings: attempting to parse unexpected "timed announcement channel" format');
                 if (typeof settings.timedAnnouncementChannels === 'string') {
@@ -487,7 +563,9 @@ async function loadSettings(path = main_settings_filename) {
         try {
             for (const guild of Object.values(settings.guilds)) {
                 delete guild.linkConversionChannel;
-                guild.timedAnnouncementChannels = new Set(guild.timedAnnouncementChannels);
+                if (guild.timedAnnouncementChannels !== undefined) {
+                    guild.timedAnnouncementChannels = new Set(guild.timedAnnouncementChannels);
+                }
                 if (guild.newBotPrefix) {
                     Logger.log(`Settings: Migrating bot prefix to ${guild.newBotPrefix} for ${guild}`);
                     guild.botPrefix = guild.newBotPrefix;
@@ -514,10 +592,17 @@ function saveSettings(path = main_settings_filename) {
     if (!client.settings || !Object.keys(client.settings).length) {
         return Promise.resolve(false);
     }
-    const outobj = Object.assign({}, client.settings);
-    for (const guild of Object.values(outobj.guilds)) {
-        guild.timedAnnouncementChannels = Array.from(guild.timedAnnouncementChannels);
-    }
+    const outobj = {
+        ...client.settings,
+        guilds: Object.fromEntries(Object.entries(client.settings.guilds).map(([guildId, guild]) => [
+            guildId,
+            {
+                ...guild,
+                timedAnnouncementChannels: Array.from(guild.timedAnnouncementChannels),
+            },
+        ])),
+    };
+    delete outobj.timedAnnouncementChannels;
     return saveDataAsJSON(path, outobj);
 }
 
@@ -604,6 +689,44 @@ function scheduleTimer(timer, channels) {
         }, msUntilActivation, timer),
     );
     timer_config.set(timer.id, { active: true, channels, inactiveChannels: [] });
+}
+
+/**
+ * Refresh active timer destinations for a guild after its channel configuration changes.
+ * @param {Guild} guild The guild whose configured channels changed.
+ */
+function updateGuildAnnouncementChannels(guild) {
+    const channels = getGuildAnnouncementChannels(guild);
+    for (const timer of client.timers_list) {
+        if (timer.isSilent())
+            continue;
+
+        const config = timer_config.get(timer.id);
+        if (!config) {
+            scheduleTimer(timer, channels);
+            continue;
+        }
+
+        config.channels = config.channels.filter(channel => channel.guild.id !== guild.id);
+        config.inactiveChannels = config.inactiveChannels.filter(channel => channel.guild.id !== guild.id);
+        config.channels.push(...channels);
+        config.active = config.channels.length > 0;
+    }
+}
+
+/**
+ * Find the configured timer announcement channels for a guild.
+ * @param {Guild} guild The guild to search.
+ * @returns {TextChannel[]} Its configured text channels.
+ */
+function getGuildAnnouncementChannels(guild) {
+    const { guildSettings } = ensureGuildSettings(client.settings, guild.id);
+    const channels = guild.channels.cache
+        .filter(channel => guildSettings.timedAnnouncementChannels.has(channel.name) && channel.isTextBased());
+    if (!channels.size && guildSettings.timedAnnouncementChannels.size) {
+        Logger.warn(`Timers: No valid channels in ${guild.name} for announcements.`);
+    }
+    return Array.from(channels.values());
 }
 
 /**

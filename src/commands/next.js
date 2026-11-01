@@ -4,6 +4,7 @@ import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from '
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
 import { getKnownTimersDetails, timerAliases, nextTimer } from '../modules/timer-helper.js';
+import { limitPublicResults } from '../modules/result-limits.js';
 
 const usage = [
     '<area> or <sub-area> will provide a message about the next related occurrence.',
@@ -115,10 +116,12 @@ async function interact(interaction) {
 
     if (!tokens.length || !timerRequest.area) {
         const knownTimers = getKnownTimersDetails(timers).split('\n');
-        const listedTimers = isPublic ? knownTimers.slice(0, 10) : knownTimers;
+        const { results: listedTimers, truncated } = isPublic
+            ? limitPublicResults(knownTimers)
+            : { results: knownTimers, truncated: false };
         reply = `I know these timers:\n${listedTimers.join('\n')}`;
-        if (isPublic && knownTimers.length > listedTimers.length)
-            reply += `\nShowing the first 10 of ${knownTimers.length} timer areas.`;
+        if (truncated)
+            reply += '\n(...and more)';
     } else {
         reply = nextTimer(timers, timerRequest, '/remind');
     }
@@ -144,7 +147,7 @@ const slashCommand = new SlashCommandBuilder()
             .setAutocomplete(true))
     .addBooleanOption(option =>
         option.setName('public')
-            .setDescription('Show the response publicly (timer list limited to 10 areas)')
+            .setDescription('Show publicly; lists over 11 timer areas show 10 and (...and more)')
             .setRequired(false));
 
 export const command = {

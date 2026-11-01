@@ -6,6 +6,7 @@ import { CommandResult } from '../interfaces/command-result.js';
 import { timeLeft, splitMessageRegex } from '../modules/format-utils.js';
 import { Logger } from '../modules/logger.js';
 import { timerAliases } from '../modules/timer-helper.js';
+import { limitPublicResults } from '../modules/result-limits.js';
 
 const usage = [
     'Displays upcoming reminders know or filtered to an area or sub-area.',
@@ -91,7 +92,14 @@ function getScheduleReply(timers, timerRequest, maxTimers = 24) {
     upcomingTimers.sort((a, b) => a.time - b.time);
 
     let reply = `I have ${upcomingTimers.length} timers coming up in the next ${reqHours.as('hours')} hours`;
-    if (upcomingTimers.length > maxTimers) {
+    let truncated = false;
+    if (maxTimers === 10) {
+        const limited = limitPublicResults(upcomingTimers);
+        upcomingTimers.splice(0, upcomingTimers.length, ...limited.results);
+        truncated = limited.truncated;
+        if (truncated)
+            reply += `. Here are the next ${maxTimers} of them`;
+    } else if (upcomingTimers.length > maxTimers) {
         reply += `. Here are the next ${maxTimers} of them`;
         upcomingTimers.splice(maxTimers, upcomingTimers.length);
     }
@@ -100,6 +108,8 @@ function getScheduleReply(timers, timerRequest, maxTimers = 24) {
     reply = upcomingTimers.reduce((str, val) => {
         return `${str}${val.message} ${timeLeft(val.time)}\n`;
     }, reply);
+    if (truncated)
+        reply += '(...and more)';
 
     return { reply, isValid: true };
 }
@@ -193,7 +203,7 @@ const slashCommand = new SlashCommandBuilder()
             .setMaxValue(240))
     .addBooleanOption(option =>
         option.setName('public')
-            .setDescription('Show the response publicly (limited to 10 timer results)')
+            .setDescription('Show publicly; lists over 11 results show 10 and (...and more)')
             .setRequired(false));
 
 export const command = {
