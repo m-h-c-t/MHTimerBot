@@ -87,6 +87,7 @@ async function initializeClient() {
         intents,
         partials: [ Partials.Message, Partials.Channel, Partials.Reaction],
     });
+    client.updateGuildAnnouncementChannels = updateGuildAnnouncementChannels;
     client.settings = settings;
     client.nicknames = new Map();
     /** @type {Timer[]} */
@@ -712,8 +713,6 @@ function updateGuildAnnouncementChannels(guild) {
         config.active = config.channels.length > 0;
     }
 }
-
-client.updateGuildAnnouncementChannels = updateGuildAnnouncementChannels;
 
 /**
  * Find the configured timer announcement channels for a guild.
