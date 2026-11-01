@@ -29,6 +29,7 @@ export const mockMember = ({
             },
         },
         nicknames: { get: sinon.stub().returns({}) }, // Return an empty mapping object by default.
+        updateGuildAnnouncementChannels: sinon.stub(),
     };
     const clientWithSettings = Object.assign({}, baseClient, clientStub);
 
@@ -47,4 +48,3 @@ export const mockMember = ({
     };
     return stub;
 };
-

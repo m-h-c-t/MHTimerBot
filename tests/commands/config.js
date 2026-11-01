@@ -116,7 +116,7 @@ test('commands - config', suite => {
 
     suite.test('when user is admin; no args - view', async t => {
         t.teardown(() => sinon.reset());
-        t.plan(3);
+        t.plan(4);
         const messageStub = stubAsAdmin();
 
         const result = await CONFIG.execute(messageStub, []);
@@ -125,6 +125,7 @@ test('commands - config', suite => {
         t.strictEqual(messageStub.channel.send.callCount, 1, 'should call channel.send');
         const reply = messageStub.channel.send.getCall(0).args[0];
         t.match(reply, /adminrole/, 'should return settings');
+        t.match(reply, /not set/, 'should explain role defaults when no custom roles are configured');
     });
 
     suite.test('when user is admin; prefix, 1 token shows current prefix', async t => {
@@ -190,6 +191,52 @@ test('commands - config', suite => {
         t.strictEqual(messageStub.channel.send.callCount, 1, 'should call channel.send');
         const reply = messageStub.channel.send.getCall(0).args[0];
         t.match(reply, /I don't think you gave me a channel to remove/, 'should request channel mention');
+    });
+
+    suite.test('when user is admin; timers; add channel updates announcements immediately', async t => {
+        t.teardown(() => sinon.reset());
+        const memberStub = mockMember();
+        const channel = {
+            id: '111',
+            name: 'announcements',
+            type: 0,
+            toString: () => '<#111>',
+        };
+        const messageStub = mockMessage({ clientStub: memberStub.client, mentionedChannels: [[channel.id, channel]] });
+        messageStub.guild = memberStub.guild;
+        messageStub.member = memberStub;
+        memberStub.permissions.has.withArgs(PermissionsBitField.Flags.Administrator).returns(true);
+        t.plan(4);
+
+        const result = await CONFIG.execute(messageStub, ['timers', 'add']);
+
+        t.true(result.replied, 'replies after adding the channel');
+        t.match(messageStub.channel.send.firstCall.args[0], /immediately/, 'confirms live timer updates');
+        t.equal(memberStub.client.updateGuildAnnouncementChannels.callCount, 1, 'refreshes active announcement channels');
+        t.equal(memberStub.client.updateGuildAnnouncementChannels.firstCall.args[0], memberStub.guild, 'refreshes the current guild');
+    });
+
+    suite.test('when user is admin; timers; remove channel updates announcements immediately', async t => {
+        t.teardown(() => sinon.reset());
+        const memberStub = mockMember();
+        memberStub.client.settings.guilds[memberStub.guild.id].timedAnnouncementChannels.add('announcements');
+        const channel = {
+            id: '111',
+            name: 'announcements',
+            toString: () => '<#111>',
+        };
+        const messageStub = mockMessage({ clientStub: memberStub.client, mentionedChannels: [[channel.id, channel]] });
+        messageStub.guild = memberStub.guild;
+        messageStub.member = memberStub;
+        memberStub.permissions.has.withArgs(PermissionsBitField.Flags.Administrator).returns(true);
+        t.plan(4);
+
+        const result = await CONFIG.execute(messageStub, ['timers', 'remove']);
+
+        t.true(result.replied, 'replies after removing the channel');
+        t.match(messageStub.channel.send.firstCall.args[0], /immediately/, 'confirms live timer updates');
+        t.equal(memberStub.client.updateGuildAnnouncementChannels.callCount, 1, 'refreshes active announcement channels');
+        t.equal(memberStub.client.updateGuildAnnouncementChannels.firstCall.args[0], memberStub.guild, 'refreshes the current guild');
     });
 
     suite.teardown(() => {

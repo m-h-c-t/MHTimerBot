@@ -18,6 +18,7 @@ import {
 } from '../modules/format-utils.js';
 import { Logger } from '../modules/logger.js';
 import { getSearchedEntity, fuzzySearch } from '../modules/search-helpers.js';
+import { limitPublicResults } from './result-limits.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 30 });
 const refresh_list = {
@@ -83,7 +84,7 @@ const powerEmoji = {
  * @param {TextChannel} channel The channel on which the client received the find request.
  * @param {Function} dataCallback a Promise-returning function that converts the local entity data into the desired text response.
  * @param {boolean} isDM Whether the response will be to a private message (i.e. if the response can be spammy).
- * @param {{qsParams: Object <string, string>, uri: string, type: string}} urlInfo Information about the query that returned the given matches, including querystring parameters, uri, and the type of search.
+ * @param {{qsParams: Object <string, string>, uri: string, type: string, formatOptions?: object}} urlInfo Information about the query that returned the given matches, including querystring parameters, uri, and the type of search.
  * @param {string} searchInput a lower-cased representation of the user's input.
  */
 async function sendInteractiveSearchResult(
@@ -135,7 +136,10 @@ async function sendInteractiveSearchResult(
     const executeCallback = async (asDM, entity) => {
         let result;
         try {
-            result = await dataCallback(asDM, entity, urlInfo.qsParams);
+            result = await dataCallback(asDM, entity, {
+                ...urlInfo.qsParams,
+                ...urlInfo.formatOptions,
+            });
         } catch (err) {
             Logger.error(
                 `SendInteractive: error executing data callback for "${entity.value}"`,
@@ -150,10 +154,10 @@ async function sendInteractiveSearchResult(
 
     const sendResponse = async (ctx, text, errMsg) => {
         try {
-            for (const content of splitMessageRegex(text, {
-                prepend: '```',
-                append: '```',
-            })) {
+            const splitOptions = urlInfo.formatOptions?.sbEmoji && urlInfo.formatOptions.sbEmoji !== 'SB+'
+                ? {}
+                : { prepend: '```', append: '```' };
+            for (const content of splitMessageRegex(text, splitOptions)) {
                 await ctx.send({ content });
             }
         } catch (sendError) {
@@ -279,7 +283,14 @@ async function formatLoot(isDM, loot, opts) {
     };
     // Sort the results by overall drop rate.
     drops.sort((a, b) => parseFloat(b.dr) - parseFloat(a.dr));
-    drops.splice(isDM ? 100 : 10);
+    let truncated = false;
+    if (isDM) {
+        drops.splice(100);
+    } else {
+        const limited = limitPublicResults(drops);
+        drops.splice(0, drops.length, ...limited.results);
+        truncated = limited.truncated;
+    }
     if (drops.every((row) => row.stage === no_stage))
         order.splice(order.indexOf('stage'), 1);
     // Column Formatting specification.
@@ -307,7 +318,10 @@ async function formatLoot(isDM, loot, opts) {
     };
     let reply = `${loot.value} (loot) can be found the following ways:\n\`\`\``;
     reply += prettyPrintArrayAsString(drops, columnFormatting, headers, '=');
-    reply += '```\n' + `HTML version at: ${target_url}`;
+    reply += '```';
+    if (truncated)
+        reply += '\n(...and more)';
+    reply += `\nHTML version at: ${target_url}`;
     return reply;
 }
 
@@ -367,7 +381,14 @@ async function formatMice(isDM, mouse, opts) {
     };
     // Sort the results.
     attracts.sort((a, b) => parseFloat(b.ar) - parseFloat(a.ar));
-    attracts.splice(isDM ? 100 : 10);
+    let truncated = false;
+    if (isDM) {
+        attracts.splice(100);
+    } else {
+        const limited = limitPublicResults(attracts);
+        attracts.splice(0, attracts.length, ...limited.results);
+        truncated = limited.truncated;
+    }
     if (attracts.every((row) => row.stage === no_stage))
         order.splice(order.indexOf('stage'), 1);
     // Column Formatting specification.
@@ -391,7 +412,10 @@ async function formatMice(isDM, mouse, opts) {
     const minLuckString = getMinluckString(mouse.value, powerFlags, true);
     let reply = `${mouse.value} (mouse) can be found the following ways:\n\`\`\``;
     reply += prettyPrintArrayAsString(attracts, columnFormatting, headers, '=');
-    reply += '```\n';
+    reply += '```';
+    if (truncated)
+        reply += '\n(...and more)';
+    reply += '\n';
     if (minLuckString) {
         reply += minLuckString + '\n';
     }
@@ -464,7 +488,14 @@ async function formatConvertibles(isDM, convertible, opts) {
             .thenBy('chance', { cmp: numComparer, direction: 'desc' })
             .thenBy('item'),
     );
-    converter.splice(isDM ? 100 : 10);
+    let truncated = false;
+    if (isDM) {
+        converter.splice(100);
+    } else {
+        const limited = limitPublicResults(converter);
+        converter.splice(0, converter.length, ...limited.results);
+        truncated = limited.truncated;
+    }
     // Column Formatting specification.
     /** @type {Object <string, ColumnFormatOptions>} */
     const columnFormatting = {};
@@ -518,15 +549,18 @@ async function formatConvertibles(isDM, convertible, opts) {
         headers,
         '=',
     );
+    reply += '```';
+    if (truncated)
+        reply += '\n(...and more)';
     reply +=
-        '```\n' +
+        '\n' +
         `Seen ${intToHuman(total_seen)} times, ${intToHuman(
             single_seen,
         )} as single opens. `;
     if (total_gold_value > 0) {
         reply += `Gold value of tradeable items per open: ${intToHuman(
             total_gold_value,
-        )} (~${intToHuman(total_sb_value)} SB). `;
+        )} (~${intToHuman(total_sb_value)} ${opts.sbEmoji || 'SB+'}). `;
     }
     reply += `HTML version at: ${target_url}`;
 

@@ -7,6 +7,7 @@ import {
 import { Duration } from 'luxon';
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
+import { getGuildEmoji } from '../modules/guild-emoji.js';
 import { fuzzySearch } from '../modules/search-helpers.js';
 
 const refresh_rate = Duration.fromObject({ minutes: 120 });
@@ -155,12 +156,7 @@ function getBestMatch(name) {
 }
 
 function getSuperBrieEmoji(interaction) {
-    let sbEmoji = 'SB+';
-    if (interaction.guildId != null && 'emoji' in interaction.client.settings.guilds[interaction.guildId]) {
-        sbEmoji = interaction.client.settings.guilds[interaction.guildId].emoji.sb || 'SB+';
-    }
-
-    return sbEmoji;
+    return getGuildEmoji(interaction.client.settings, interaction.guildId ?? null).sb || 'SB+';
 }
 
 const slashCommand = new SlashCommandBuilder()

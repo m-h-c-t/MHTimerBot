@@ -237,7 +237,7 @@ const slashCommand = new SlashCommandBuilder()
             .setAutocomplete(true))
     .addBooleanOption(option =>
         option.setName('public')
-            .setDescription('Show the response publicly (limited to 10 results)')
+            .setDescription('Show publicly; lists over 11 results show 10 and (...and more)')
             .setRequired(false));
 
 export const command = {

@@ -34,8 +34,8 @@ async function doSet(message, tokens) {
     }
     else if (action === 'view' && guild) {
         // Show current settings.
-        reply = `\`adminrole\` - ${guildSettings.adminrole}\n`;
-        reply += `\`modrole\` - ${guildSettings.modrole}`;
+        reply = `\`adminrole\` - ${guildSettings.adminrole || 'not set (Discord Administrator permission)'}\n`;
+        reply += `\`modrole\` - ${guildSettings.modrole || 'not set (Manage Messages permission)'}`;
         if ('emoji' in guildSettings) {
             reply += '\nYou can see your emoji settings with `config emoji`';
         }
@@ -113,7 +113,8 @@ async function doSet(message, tokens) {
                 reply = `Didn't add ${channel.toString()} because it's already in the list`;
             else {
                 guildSettings.timedAnnouncementChannels.add(channel.name);
-                reply = `I added ${channel.toString()} but because Aard is lazy it won't be used until next restart`;
+                message.client.updateGuildAnnouncementChannels(guild);
+                reply = `I added ${channel.toString()} and timer announcements will use it immediately`;
                 Logger.log(`CONFIG: Added channel ${channel.id} (${channel.name}) to timers for guild ${guild.id} (${guild.name})`);
             }
         }
@@ -126,7 +127,8 @@ async function doSet(message, tokens) {
                 reply = `Didn't remove ${channel.toString()} because I couldn't figure out its name`;
             else if (guildSettings.timedAnnouncementChannels.has(channel.name)) {
                 guildSettings.timedAnnouncementChannels.delete(channel.name);
-                reply = `Removed ${channel.toString()} but because Aard is lazy it won't stop being used until next restart`;
+                message.client.updateGuildAnnouncementChannels(guild);
+                reply = `Removed ${channel.toString()} and timer announcements will stop using it immediately`;
                 Logger.log(`CONFIG: Removed channel ${channel.id} (${channel.name}) from timers for guild ${guild.id} (${guild.name})`);
             }
             else {

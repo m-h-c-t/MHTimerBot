@@ -3,6 +3,7 @@ import { Message, MessageFlags, CommandInteraction, SlashCommandBuilder } from '
 
 import { CommandResult } from '../interfaces/command-result.js';
 import { Logger } from '../modules/logger.js';
+import { getGuildEmoji } from '../modules/guild-emoji.js';
 import { initialize, getMice, getMinluckString, save } from '../modules/mhct-lookup.js';
 
 const usage = [
@@ -112,14 +113,8 @@ function getMinLuck(message, mouse, flags, shortenFlags = false) {
             if (f in typeMap)
                 return typeMap[f];
         }).filter(type => !!type );
-        if ('guildId' in message
-            && message['guildId']
-            && message['guildId'] in message.client.settings.guilds
-            && 'emoji' in message.client.settings.guilds[message.guildId]) {
-            reply += getMinluckString(all_mice[0].value, types, shortenFlags, message.client.settings.guilds[message.guild.id].emoji);
-        } else {
-            reply += getMinluckString(all_mice[0].value, types, shortenFlags);
-        }
+        const emoji = getGuildEmoji(message.client.settings, message.guildId ?? null);
+        reply += getMinluckString(all_mice[0].value, types, shortenFlags, emoji);
     } else {
         reply = `I did not find ${mouse}`;
     }
